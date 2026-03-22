@@ -1,0 +1,137 @@
+{
+  "projectType": "frontend",
+  "projectName": "YWCC Industry Capstone",
+  "projectDescription": "A CMS-driven static website for NJIT's Ying Wu College of Computing Industry Capstone program, where content editors compose pages by stacking reusable UI blocks in Sanity Studio — zero code required.",
+  "theme": "palm",
+  "primaryColor": "#F03E2F",
+  "lightColor": "#FF6B5B",
+  "darkColor": "#B52B1F",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Getting Started",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Setup",
+            "pages": ["setup/prerequisites", "setup/environment", "setup/local-development"]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "System Design",
+            "pages": ["architecture/overview", "architecture/content-model", "architecture/rendering-strategy"]
+          },
+          {
+            "group": "Monorepo",
+            "pages": ["architecture/project-structure", "architecture/workspace-packages"]
+          }
+        ]
+      },
+      {
+        "tab": "Block Library",
+        "groups": [
+          {
+            "group": "Concepts",
+            "pages": ["blocks/overview", "blocks/block-architecture", "blocks/block-registry"]
+          },
+          {
+            "group": "Custom Blocks",
+            "pages": ["blocks/custom/hero-banner", "blocks/custom/feature-grid", "blocks/custom/sponsor-cards", "blocks/custom/rich-text", "blocks/custom/cta-banner", "blocks/custom/faq-section", "blocks/custom/contact-form", "blocks/custom/stats-row", "blocks/custom/text-with-image", "blocks/custom/logo-cloud", "blocks/custom/sponsor-steps"]
+          },
+          {
+            "group": "Template Blocks",
+            "pages": ["blocks/templates/overview", "blocks/templates/heroes", "blocks/templates/features", "blocks/templates/content", "blocks/templates/cta", "blocks/templates/media"]
+          },
+          {
+            "group": "Adding Blocks",
+            "pages": ["blocks/adding/custom-block", "blocks/adding/template-block"]
+          }
+        ]
+      },
+      {
+        "tab": "Content Management",
+        "groups": [
+          {
+            "group": "Sanity Studio",
+            "pages": ["cms/overview", "cms/schema-types", "cms/visual-editing"]
+          },
+          {
+            "group": "Document Types",
+            "pages": ["cms/documents/page", "cms/documents/sponsor", "cms/documents/project", "cms/documents/team", "cms/documents/event", "cms/documents/site-settings"]
+          },
+          {
+            "group": "GROQ Queries",
+            "pages": ["cms/groq/overview", "cms/groq/projections"]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "groups": [
+          {
+            "group": "Infrastructure",
+            "pages": ["deployment/cloudflare-pages", "deployment/cloudflare-workers", "deployment/sanity-studio"]
+          },
+          {
+            "group": "CI/CD",
+            "pages": ["deployment/github-actions", "deployment/semantic-release", "deployment/git-workflow"]
+          },
+          {
+            "group": "Performance",
+            "pages": ["deployment/lighthouse-ci", "deployment/performance-targets"]
+          }
+        ]
+      },
+      {
+        "tab": "Testing",
+        "groups": [
+          {
+            "group": "Test Layers",
+            "pages": ["testing/overview", "testing/unit-tests", "testing/e2e-tests", "testing/accessibility"]
+          },
+          {
+            "group": "Storybook",
+            "pages": ["testing/storybook"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "CMS-driven page builder with 100+ reusable UI blocks via Sanity Studio",
+    "Block registry auto-discovers all blocks — no manual registration",
+    "Astro SSG (static site generation) for Lighthouse 95+ performance",
+    "Cloudflare Pages + Workers deployment at $0/month operating cost",
+    "Sanity Visual Editing with live draft content on preview branch",
+    "11 custom blocks with business logic, 102 fulldev/ui template blocks",
+    "7 Sanity document types: Page, Sponsor, Project, Team, Event, Submission, Site Settings",
+    "Multi-layer testing: Vitest unit + Playwright E2E + axe-core accessibility + Lighthouse CI",
+    "Storybook 10 component library with Astro renderer",
+    "Automated semantic versioning and changelog via conventional commits",
+    "npm workspaces monorepo with astro-app and studio packages",
+    "Cloudflare D1 (SQLite) database + Better Auth for student portal"
+  ],
+  "publicApiSurface": [
+    "block-registry.ts: allBlocks — unified map of all block components",
+    "BlockRenderer.astro — single dispatch component for rendering page blocks",
+    "defineBlock() — helper for creating Sanity block schemas with shared base fields",
+    "getSiteParams() — returns GROQ query params for multi-site filtering",
+    "SITE_SETTINGS_QUERY — GROQ query for site-wide settings",
+    "PAGE_BY_SLUG_QUERY — GROQ query for fetching pages by slug",
+    "ALL_SPONSORS_QUERY — GROQ query for sponsor documents",
+    "ALL_PROJECTS_QUERY — GROQ query for project documents",
+    "ALL_EVENTS_QUERY — GROQ query for event documents",
+    "IMAGE_PROJECTION — reusable GROQ image asset projection",
+    "PORTABLE_TEXT_PROJECTION — reusable GROQ portable text projection",
+    "Sponsor type — TypeScript type derived from ALL_SPONSORS_QUERY_RESULT",
+    "Project type — TypeScript type derived from ALL_PROJECTS_QUERY_RESULT",
+    "Testimonial type — TypeScript type derived from ALL_TESTIMONIALS_QUERY_RESULT"
+  ]
+}
