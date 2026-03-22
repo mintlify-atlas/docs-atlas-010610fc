@@ -1,0 +1,42 @@
+---
+title: "Pullquote"
+description: "A large-format editorial quotation with optional attribution, role, and headshot."
+---
+
+The `Pullquote` block renders a visually prominent quotation — ideal for sponsor endorsements, testimonial highlights, or key program statements placed inline within page content.
+
+## Props
+
+<ParamField path="quote" type="string" required>
+  The quotation text. Rendered at large display size.
+</ParamField>
+
+<ParamField path="attribution" type="string">
+  Name of the person being quoted.
+</ParamField>
+
+<ParamField path="role" type="string">
+  Job title or role of the person (e.g. `CTO`, `Program Director`).
+</ParamField>
+
+<ParamField path="image" type="SanityImageObject">
+  Optional headshot or avatar. Rendered as a small circular image alongside the attribution. Supports hotspot/crop and LQIP.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Pullquote** block to a page.
+2. Enter the **Quote** text (required).
+3. Optionally add **Attribution**, **Role**, and a **Photo**.
+
+## Example
+
+```typescript
+{
+  _type: 'pullquote',
+  quote: 'The YWCC Capstone program delivered exceptional students who hit the ground running on day one.',
+  attribution: 'Jane Smith',
+  role: 'VP Engineering, Acme Corp',
+  image: { asset: { _ref: 'image-abc' }, alt: 'Jane Smith' }
+}
+```

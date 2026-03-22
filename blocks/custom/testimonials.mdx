@@ -1,0 +1,66 @@
+---
+title: "Testimonials"
+description: "Displays testimonial quotes from industry contacts and students, with multiple filtering modes and optional project grouping."
+---
+
+The `Testimonials` block renders a responsive grid of quote cards sourced from Sanity `testimonial` documents. It supports five display modes including grouping testimonials by project for impact case studies.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="displayMode" type="'all' | 'industry' | 'student' | 'byProject' | 'manual'">
+  Controls which testimonials are shown. Defaults to `all`. Filtering is applied by `resolveBlockTestimonials()` in `sanity.ts` before the block receives its props.
+
+  | Value | Behavior |
+  |---|---|
+  | `all` | All testimonials |
+  | `industry` | Only `type == "industry"` |
+  | `student` | Only `type == "student"` |
+  | `byProject` | Only testimonials with a `project` reference; grouped by project |
+  | `manual` | Editor-selected list from the block config |
+</ParamField>
+
+<ParamField path="testimonials" type="Testimonial[]">
+  Pre-resolved array of testimonial objects injected by `BlockRenderer` via `resolveBlockTestimonials()`. Each testimonial includes `name`, `quote`, `role`, `organization`, `type`, `photo`, `videoUrl`, and an optional `project` reference.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Testimonials** block to a page.
+2. Set an optional **Heading**.
+3. Choose a **Display Mode**:
+   - `all` — shows every testimonial
+   - `industry` / `student` — filters by type
+   - `byProject` — groups quotes under their linked project (useful for impact sections)
+   - `manual` — exposes a multi-reference picker to hand-select testimonials
+
+<Tip>
+  Use `byProject` mode on project showcase pages to surface impact quotes in context without duplicating data.
+</Tip>
+
+## Layout
+
+Testimonials render in a 3-column responsive grid (`md:grid-cols-2 lg:grid-cols-3`). In `byProject` mode, each group has a linked project heading above its 3-column grid.
+
+Each card is rendered by `TestimonialCard.astro` which handles the quote, attribution, photo, and optional video link.
+
+## Example
+
+```typescript
+{
+  _type: 'testimonials',
+  heading: 'What sponsors say',
+  displayMode: 'industry'
+}
+```

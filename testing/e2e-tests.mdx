@@ -32,7 +32,7 @@ npx playwright test --project=mobile-safari
 Integration tests use the same Playwright/Vitest runner but skip browser launch entirely. They validate schema structure, module imports, Storybook configuration, and story file conventions:
 
 ```bash
-npm run test:integration
+npx playwright test tests/integration
 ```
 
 Integration test directories in `tests/integration/`:

@@ -1,0 +1,46 @@
+---
+title: "Article List"
+description: "A listing block for articles or news items with a configurable source and optional CTA links."
+---
+
+The `ArticleList` block renders a list of article or news items. It supports a configurable `source` field that determines where content is pulled from, a display `limit`, and optional CTA links at the bottom.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading.
+</ParamField>
+
+<ParamField path="source" type="string">
+  The data source for articles. Configured in Sanity schema.
+</ParamField>
+
+<ParamField path="limit" type="number">
+  Maximum number of articles to display.
+</ParamField>
+
+<ParamField path="links" type="Button[]">
+  Optional array of CTA button objects (`{ text, url, variant }`) rendered below the article list.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add an **Article List** block to a page.
+2. Set a **Heading** and optional **Description**.
+3. Configure the **Source** and **Limit**.
+4. Add optional **Links** for "View all" style CTAs.
+
+## Example
+
+```typescript
+{
+  _type: 'articleList',
+  heading: 'Latest News',
+  limit: 6,
+  links: [{ text: 'View all news', url: '/news', variant: 'outline' }]
+}
+```

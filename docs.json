@@ -67,7 +67,20 @@
               "blocks/custom/stats-row",
               "blocks/custom/text-with-image",
               "blocks/custom/logo-cloud",
-              "blocks/custom/sponsor-steps"
+              "blocks/custom/sponsor-steps",
+              "blocks/custom/testimonials",
+              "blocks/custom/event-list",
+              "blocks/custom/project-cards",
+              "blocks/custom/team-grid",
+              "blocks/custom/image-gallery",
+              "blocks/custom/article-list",
+              "blocks/custom/comparison-table",
+              "blocks/custom/timeline",
+              "blocks/custom/pullquote",
+              "blocks/custom/divider",
+              "blocks/custom/announcement-bar",
+              "blocks/custom/sponsorship-tiers",
+              "blocks/custom/video-embed"
             ]
           },
           {

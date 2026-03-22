@@ -1,0 +1,56 @@
+---
+title: "Event List"
+description: "Displays upcoming, past, or all events sourced from Sanity event documents in a responsive card grid."
+---
+
+The `EventList` block renders a grid of event cards from the Sanity `event` document type. Events are fetched once per build by `getAllEvents()` and filtered by `resolveBlockEvents()` before the block receives them.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="filterBy" type="'all' | 'upcoming' | 'past'">
+  Controls which events are shown. Defaults to `upcoming`. Filtering logic runs in `resolveBlockEvents()` in `sanity.ts`.
+
+  | Value | Behavior |
+  |---|---|
+  | `upcoming` | Events where `status == "upcoming"` or `date >= now` (sorted ascending) |
+  | `past` | Events where `status == "past"` or `date < now` (sorted descending) |
+  | `all` | All events sorted by date ascending |
+</ParamField>
+
+<ParamField path="limit" type="number">
+  Maximum number of events to display. Defaults to `10`.
+</ParamField>
+
+<ParamField path="events" type="SanityEvent[]">
+  Pre-filtered array of event objects injected by `BlockRenderer` via `resolveBlockEvents()`. Each event includes `_id`, `title`, `slug`, `date`, `endDate`, `location`, `description`, `eventType`, `status`, `isAllDay`, and `category`.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add an **Event List** block to a page.
+2. Set an optional **Heading**.
+3. Choose a **Filter**: `upcoming`, `past`, or `all`.
+4. Set a **Limit** to cap the number of cards shown.
+
+<Note>
+  The `status` field on an event takes priority over date comparison. If an event's date has passed but `status` is still `upcoming`, it remains in the upcoming list. Set `status: past` manually when the event is over.
+</Note>
+
+## Layout
+
+Events render in a 3-column responsive grid (`md:grid-cols-2 lg:grid-cols-3`). Each card is rendered by `EventCard.astro`.
+
+## Example
+
+```typescript
+{
+  _type: 'eventList',
+  heading: 'Upcoming Events',
+  filterBy: 'upcoming',
+  limit: 6
+}
+```

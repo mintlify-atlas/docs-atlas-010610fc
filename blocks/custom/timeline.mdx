@@ -1,0 +1,60 @@
+---
+title: "Timeline"
+description: "A chronological list of entries with date labels, descriptions, and optional images in three layout variants."
+---
+
+The `Timeline` block renders a sequence of dated entries. It supports vertical, split (alternating left-right), and horizontal scroll layouts.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading.
+</ParamField>
+
+<ParamField path="items" type="TimelineEntry[]">
+  Array of timeline entry objects. Each has:
+  - `date` (string) — date or period label displayed as a small caps caption
+  - `title` (string) — entry heading
+  - `description` (string) — supporting text
+  - `image` (SanityImageObject) — optional image with LQIP support
+</ParamField>
+
+<ParamField path="links" type="Button[]">
+  Optional CTA buttons rendered below the timeline.
+</ParamField>
+
+<ParamField path="variant" type="'vertical' | 'split' | 'horizontal'">
+  Layout variant. Defaults to `vertical`.
+
+  | Value | Description |
+  |---|---|
+  | `vertical` | Single-column list with a left-aligned date in a fixed 60px column and a vertical line |
+  | `split` | Alternating left-right entries on either side of a centered vertical line |
+  | `horizontal` | Horizontally scrollable entries above a single horizontal line |
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Timeline** block to a page.
+2. Set a **Heading** and optional **Description**.
+3. Add entries to the **Items** array — each needs a date label and title.
+4. Choose a **Variant** in Layout Options.
+
+## Example
+
+```typescript
+{
+  _type: 'timeline',
+  heading: 'Program Milestones',
+  variant: 'vertical',
+  items: [
+    { date: 'Sep 2024', title: 'Kickoff', description: 'Teams formed and sponsors assigned.' },
+    { date: 'Dec 2024', title: 'Midpoint Review', description: 'Progress presentations to sponsors.' },
+    { date: 'May 2025', title: 'Showcase', description: 'Final demo day open to the public.' }
+  ]
+}
+```

@@ -1,0 +1,46 @@
+---
+title: "Image Gallery"
+description: "A responsive image grid with optional heading, description, and configurable column count."
+---
+
+The `ImageGallery` block renders a responsive masonry-style or uniform grid of images with optional captions. It uses `urlFor` with LQIP placeholders for optimized lazy loading.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading.
+</ParamField>
+
+<ParamField path="images" type="GalleryImage[]">
+  Array of image objects. Each item has:
+  - `image` (SanityImageObject, required) — the image with hotspot/crop and LQIP metadata
+  - `caption` (string) — optional caption displayed below the image
+</ParamField>
+
+<ParamField path="columns" type="2 | 3 | 4">
+  Number of columns in the grid. Defaults to `3`.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add an **Image Gallery** block to a page.
+2. Set an optional **Heading** and **Description**.
+3. Add images to the **Images** array — each requires an image upload and alt text.
+4. Set the **Columns** value in Layout Options.
+
+## Example
+
+```typescript
+{
+  _type: 'imageGallery',
+  heading: 'Program Photos',
+  columns: 3,
+  images: [
+    { image: { asset: { _ref: 'image-abc' }, alt: 'Students at showcase' }, caption: 'Spring 2025 Showcase' }
+  ]
+}
+```

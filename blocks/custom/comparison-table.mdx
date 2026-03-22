@@ -1,0 +1,58 @@
+---
+title: "Comparison Table"
+description: "A feature comparison table with highlighted columns, row groups, and optional CTA links."
+---
+
+The `ComparisonTable` block renders a structured comparison table — useful for sponsorship tier comparisons, feature matrices, or plan comparisons. It supports highlighted columns (e.g. the recommended tier) and header rows for grouping.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading.
+</ParamField>
+
+<ParamField path="columns" type="Column[]">
+  Array of column header objects. Each has:
+  - `title` (string) — column header label
+  - `highlighted` (boolean) — when `true`, the column is visually highlighted (e.g. a recommended tier)
+</ParamField>
+
+<ParamField path="rows" type="Row[]">
+  Array of row objects. Each has:
+  - `feature` (string) — the row label in the first column
+  - `values` (string[]) — cell values corresponding to each column
+  - `isHeader` (boolean) — when `true`, the row renders as a section header across all columns
+</ParamField>
+
+<ParamField path="links" type="Button[]">
+  Optional CTA buttons rendered below the table.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Comparison Table** block to a page.
+2. Define **Columns** — mark the recommended one as highlighted.
+3. Add **Rows** — use `isHeader: true` for section dividers.
+4. Add optional **Links** for sign-up or contact CTAs.
+
+## Example
+
+```typescript
+{
+  _type: 'comparisonTable',
+  heading: 'Sponsorship Tiers',
+  columns: [
+    { title: 'Bronze', highlighted: false },
+    { title: 'Silver', highlighted: false },
+    { title: 'Gold', highlighted: true }
+  ],
+  rows: [
+    { feature: 'Logo on website', values: ['✓', '✓', '✓'], isHeader: false },
+    { feature: 'Number of projects', values: ['1', '2', '3'], isHeader: false }
+  ]
+}
+```

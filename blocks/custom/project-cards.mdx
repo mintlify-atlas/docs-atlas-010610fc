@@ -1,0 +1,47 @@
+---
+title: "Project Cards"
+description: "Displays capstone project cards from Sanity project documents with sponsor references and technology tags."
+---
+
+The `ProjectCards` block renders a grid of project cards from the Sanity `project` document type. Projects are fetched once per build by `getAllProjects()` and filtered by `resolveBlockProjects()` before the block receives them.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="displayMode" type="'all' | 'featured' | 'manual'">
+  Controls which projects are shown. Defaults to `all`.
+
+  | Value | Behavior |
+  |---|---|
+  | `all` | All projects (ordered by title) |
+  | `featured` | Only projects where `featured == true` |
+  | `manual` | Editor-selected list via multi-reference picker |
+</ParamField>
+
+<ParamField path="projects" type="Project[]">
+  Pre-resolved array of project objects injected by `BlockRenderer` via `resolveBlockProjects()`. Each project includes `_id`, `title`, `slug`, `content`, `sponsor`, `technologyTags`, `semester`, `status`, `outcome`, and `featured`.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Project Cards** block to a page.
+2. Set an optional **Heading**.
+3. Choose a **Display Mode**: `all`, `featured`, or `manual`.
+4. If `manual`, use the multi-reference picker to select specific projects.
+
+<Tip>
+  Mark important projects `featured: true` in the Project document to create curated highlight sections without duplicating block config.
+</Tip>
+
+## Example
+
+```typescript
+{
+  _type: 'projectCards',
+  heading: 'Featured Projects',
+  displayMode: 'featured'
+}
+```

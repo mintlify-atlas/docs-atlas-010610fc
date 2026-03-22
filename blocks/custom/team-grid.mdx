@@ -1,0 +1,59 @@
+---
+title: "Team Grid"
+description: "Displays team member cards with photo, name, role, and optional links in three layout variants."
+---
+
+The `TeamGrid` block renders a grid of team member cards. Unlike the project `team[]` inline array, this block is designed for standalone team showcase sections with photos and social links.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading. Used in `grid` and `split` variants.
+</ParamField>
+
+<ParamField path="items" type="TeamMember[]">
+  Array of team member objects. Each item has:
+  - `name` (string, required) — display name
+  - `role` (string) — job title or team role
+  - `image` (SanityImageObject) — headshot with hotspot/crop support
+  - `links` (array) — optional array of `{ label, href }` objects
+</ParamField>
+
+<ParamField path="variant" type="'grid' | 'grid-compact' | 'split'">
+  Layout variant. Defaults to `grid`.
+
+  | Value | Description |
+  |---|---|
+  | `grid` | Standard card grid with large square photos |
+  | `grid-compact` | Inline list with small circular photos |
+  | `split` | Sticky heading left, 2-column card grid right |
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Team Grid** block to a page.
+2. Set a **Heading** and optional **Description**.
+3. Add team members in the **Items** array — each needs a name and optionally a photo, role, and links.
+4. Choose a **Variant** from the Layout Options fieldset.
+
+## Example
+
+```typescript
+{
+  _type: 'teamGrid',
+  heading: 'Meet the Team',
+  variant: 'grid',
+  items: [
+    {
+      name: 'Jane Smith',
+      role: 'Project Lead',
+      image: { asset: { _ref: 'image-abc' }, alt: 'Jane Smith' },
+      links: [{ label: 'LinkedIn', href: 'https://linkedin.com/in/janesmith' }]
+    }
+  ]
+}
+```

@@ -1,0 +1,31 @@
+---
+title: "Divider"
+description: "A visual section separator with optional label text."
+---
+
+The `Divider` block inserts a horizontal rule between page sections. It supports an optional text label centered over the rule — useful for marking transitions like "About the Program" or "2024–2025 Cohort".
+
+## Props
+
+<ParamField path="label" type="string">
+  Optional text label displayed centered over the horizontal rule. When omitted, a plain `<hr>` is rendered.
+</ParamField>
+
+## Base fields
+
+Like all blocks, `Divider` inherits `backgroundVariant`, `spacing`, and `maxWidth` from the shared block base via `defineBlock`.
+
+## Usage in Sanity Studio
+
+1. Add a **Divider** block between two other blocks.
+2. Optionally enter a **Label** to annotate the division.
+3. Adjust **Spacing** in Layout Options if needed.
+
+## Example
+
+```typescript
+{
+  _type: 'divider',
+  label: '2024–2025 Cohort'
+}
+```

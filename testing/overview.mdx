@@ -10,7 +10,7 @@ The project uses a four-layer test strategy. Each layer targets a specific level
 | Layer | Tool | Command | What it tests |
 |---|---|---|---|
 | Unit | Vitest | `npm run test:unit` | Utilities, GROQ queries, mock data, DOM scripts |
-| Integration | Playwright (no browser) | `npm run test:integration` | Schema validation, module imports |
+| Integration | Playwright (no browser) | `npx playwright test tests/integration` | Schema validation, module imports |
 | E2E | Playwright (5 browsers) | `npm run test:e2e` | Full browser tests across 5 device configs |
 | Accessibility | axe-core via `@axe-core/playwright` | Included in E2E | WCAG 2.1 AA compliance |
 | Performance | Lighthouse CI | CI only (preview PRs) | Core Web Vitals, performance budgets |
@@ -22,7 +22,7 @@ The project uses a four-layer test strategy. Each layer targets a specific level
 npm run test:unit
 
 # Integration tests (schema/content validation, no browser)
-npm run test:integration
+npx playwright test tests/integration
 
 # Full E2E suite (all 5 browser projects, builds first)
 npm run test:e2e
@@ -63,7 +63,7 @@ The CI pipeline runs tests in this order:
     `npm run test:unit` runs on every push to every branch. Fast feedback — typically completes in under 10 seconds. Blocks merge if any test fails.
   </Step>
   <Step title="Integration tests">
-    `npm run test:integration` runs on every push. Validates schema structure, Storybook config, and module conventions without spinning up a browser.
+    `npx playwright test tests/integration` runs on every push. Validates schema structure, Storybook config, and module conventions without spinning up a browser.
   </Step>
   <Step title="E2E tests">
     `npm run test:e2e` runs on PRs to `preview`. Builds the Astro site first, then runs all 5 browser projects. Uses `workers: 1` for stability in CI. Screenshots, videos, and traces are uploaded as artifacts on failure.

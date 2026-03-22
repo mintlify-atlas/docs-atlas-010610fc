@@ -1,0 +1,44 @@
+---
+title: "Announcement Bar"
+description: "A top-of-section notice bar with icon, text, and an optional link. Supports optional dismissal."
+---
+
+The `AnnouncementBar` block renders a full-width banner for time-sensitive notices — application deadlines, event announcements, or program updates. It supports an icon, linked text, and a dismiss button.
+
+## Props
+
+<ParamField path="icon" type="string">
+  Icon name from the Iconify/Lucide set. Rendered before the announcement text.
+</ParamField>
+
+<ParamField path="text" type="string" required>
+  The announcement message text.
+</ParamField>
+
+<ParamField path="link" type="object">
+  Optional link appended to the announcement. Object with:
+  - `label` (string) — link display text
+  - `href` (string) — destination URL
+</ParamField>
+
+<ParamField path="dismissible" type="boolean">
+  When `true`, a close (×) button appears and the bar can be dismissed by the visitor. Defaults to `false`.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add an **Announcement Bar** block near the top of a page.
+2. Enter the **Text** (required).
+3. Optionally set an **Icon** name, a **Link**, and toggle **Dismissible**.
+
+## Example
+
+```typescript
+{
+  _type: 'announcementBar',
+  icon: 'calendar',
+  text: 'Applications for the Spring 2026 cohort are now open.',
+  link: { label: 'Apply now', href: '/apply' },
+  dismissible: true
+}
+```

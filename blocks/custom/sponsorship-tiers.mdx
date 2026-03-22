@@ -1,0 +1,62 @@
+---
+title: "Sponsorship Tiers"
+description: "A pricing-style tier card grid for displaying sponsorship packages with benefits lists and CTA buttons."
+---
+
+The `SponsorshipTiers` block renders a set of sponsorship package cards — similar to a pricing table — with benefit bullet lists and optional CTA buttons. One tier can be highlighted as the recommended option.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Section heading rendered as `<h2>`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading.
+</ParamField>
+
+<ParamField path="tiers" type="SponsorshipTier[]">
+  Array of sponsorship tier objects. Each has:
+  - `name` (string) — tier name (e.g. `Gold`, `Platinum`)
+  - `price` (string) — price or investment range displayed prominently
+  - `benefits` (string[]) — bullet-point list of included benefits
+  - `highlighted` (boolean) — when `true`, the card receives a visual highlight border and badge
+  - `ctaButton` (object) — optional CTA button with `text`, `url`, and `variant`
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Sponsorship Tiers** block to a sponsorship or partnership page.
+2. Set a **Heading** and optional **Description**.
+3. Add tiers to the **Tiers** array — each needs a name and benefits list.
+4. Mark the recommended tier as **Highlighted**.
+5. Add a **CTA Button** to each tier for direct contact or application links.
+
+<Note>
+  This block is distinct from the `SponsorCards` block, which shows existing sponsor logos. `SponsorshipTiers` is for marketing the sponsorship program to prospective partners.
+</Note>
+
+## Example
+
+```typescript
+{
+  _type: 'sponsorshipTiers',
+  heading: 'Sponsorship Packages',
+  tiers: [
+    {
+      name: 'Bronze',
+      price: '$2,500',
+      benefits: ['Logo on website', '1 project slot'],
+      highlighted: false,
+      ctaButton: { text: 'Get started', url: '/contact', variant: 'outline' }
+    },
+    {
+      name: 'Gold',
+      price: '$10,000',
+      benefits: ['Logo on website', '3 project slots', 'Speaking opportunity'],
+      highlighted: true,
+      ctaButton: { text: 'Become a Gold sponsor', url: '/contact', variant: 'default' }
+    }
+  ]
+}
+```

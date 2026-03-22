@@ -1,0 +1,41 @@
+---
+title: "Video Embed"
+description: "Embeds a video from a URL (YouTube, Vimeo) with optional title and caption."
+---
+
+The `VideoEmbed` block renders an embedded video player inside a responsive `<figure>` element. It supports YouTube and Vimeo URLs and uses the `video.ts` utility for URL normalization.
+
+## Props
+
+<ParamField path="videoUrl" type="string" required>
+  The video URL. Supports YouTube (`https://youtube.com/watch?v=...`, `https://youtu.be/...`) and Vimeo (`https://vimeo.com/...`) URLs. Converted to embed format by the `getVideoEmbedUrl()` utility in `src/lib/video.ts`.
+</ParamField>
+
+<ParamField path="title" type="string">
+  Accessible title for the `<iframe>`. Defaults to `"Video"` if not set.
+</ParamField>
+
+<ParamField path="caption" type="string">
+  Optional text caption rendered below the video.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Video Embed** block to a page.
+2. Paste a YouTube or Vimeo URL into the **Video URL** field.
+3. Optionally add a **Title** (for accessibility) and **Caption**.
+
+<Note>
+  The video URL is sanitized by `getVideoEmbedUrl()` in `src/lib/video.ts` before being used as the `<iframe>` `src`. Only YouTube and Vimeo domains are accepted.
+</Note>
+
+## Example
+
+```typescript
+{
+  _type: 'videoEmbed',
+  videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  title: 'YWCC Capstone Program Overview',
+  caption: 'Watch our 2-minute program overview video.'
+}
+```

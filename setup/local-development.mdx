@@ -115,7 +115,13 @@ Playwright tests live in `tests/` and run across 5 device configurations. axe-co
 
 ### Integration tests
 
-Integration tests run as a Playwright project (`test:integration`) without launching a browser. They validate schema imports and module resolution at build time — no network or browser required.
+Integration tests use Playwright without a browser. Run them directly with:
+
+```bash
+npx playwright test tests/integration
+```
+
+They validate schema imports, block registry conventions, and module resolution — no network or browser launch required.
 
 ## Code quality
 
