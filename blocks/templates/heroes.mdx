@@ -1,0 +1,159 @@
+---
+title: "Hero blocks"
+description: "14 fulldev/ui hero variants (hero-1 through hero-14) covering centered, split, and image-heavy landing section layouts."
+---
+
+Hero blocks render the top-of-page section of a landing page. All 14 variants share the same `_type` naming convention and are auto-discovered by `block-registry.ts`.
+
+## Variants
+
+<CardGroup cols={2}>
+  <Card title="hero-1" icon="layout-template">
+    Centered layout: badge link + headline prose + two CTA buttons + full-width image below.
+  </Card>
+  <Card title="hero-2" icon="layout-template">
+    Split layout: headline and actions on the left, media on the right.
+  </Card>
+  <Card title="hero-3" icon="layout-template">
+    Minimal centered layout with headline and actions, no image.
+  </Card>
+  <Card title="hero-4" icon="layout-template">
+    Centered layout with background image fill and overlaid text.
+  </Card>
+  <Card title="hero-5" icon="layout-template">
+    Split layout with stacked stat items alongside the headline.
+  </Card>
+  <Card title="hero-6" icon="layout-template">
+    Centered layout with logo cloud row beneath the CTA buttons.
+  </Card>
+  <Card title="hero-7" icon="layout-template">
+    Split layout with a ratings/social proof item embedded in the content area.
+  </Card>
+  <Card title="hero-8" icon="layout-template">
+    Full-bleed video background with centered headline overlay.
+  </Card>
+  <Card title="hero-9" icon="layout-template">
+    Centered layout with feature icon tiles below the CTA.
+  </Card>
+  <Card title="hero-10" icon="layout-template">
+    Split layout with a feature checklist alongside the prose.
+  </Card>
+  <Card title="hero-11" icon="layout-template">
+    Centered layout with a floating card testimonial element.
+  </Card>
+  <Card title="hero-12" icon="layout-template">
+    Split layout with avatar group and rating social proof.
+  </Card>
+  <Card title="hero-13" icon="layout-template">
+    Minimal split layout with a single prominent CTA button.
+  </Card>
+  <Card title="hero-14" icon="layout-template">
+    Centered layout with a marquee/scrolling image strip below.
+  </Card>
+</CardGroup>
+
+## Sanity `_type` names
+
+Each variant's Sanity block type matches the filename exactly:
+
+```
+hero-1.astro  →  _type: "hero-1"
+hero-2.astro  →  _type: "hero-2"
+...and so on through hero-14
+```
+
+## Props interface
+
+All hero variants derive from the same base pattern. `hero-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/hero-1.astro
+interface Props {
+  class?: string
+  id?: string
+  link?: {
+    text?: string
+    href?: string
+    icon?: string
+    target?: string
+  }
+  links?: {
+    text?: string
+    href?: string
+    icon?: string
+    target?: string
+  }[]
+  image?: {
+    src: string
+    alt: string
+  }
+}
+```
+
+<ParamField path="class" type="string">
+  Additional CSS classes forwarded to the root `<Section>` element.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` attribute on the root element, used for anchor links.
+</ParamField>
+
+<ParamField path="link" type="object">
+  Badge/pill link rendered above the headline. Accepts `text`, `href`, `icon` (Lucide/Iconify name), and `target`.
+</ParamField>
+
+<ParamField path="links" type="object[]">
+  Array of CTA buttons rendered in the section actions row. The first item uses the `default` button variant; subsequent items use `secondary`. Each object accepts `text`, `href`, `icon`, and `target`.
+</ParamField>
+
+<ParamField path="image" type="object">
+  Hero image rendered in `SectionMedia`. Requires `src` (URL or path) and `alt` (descriptive text). Served with responsive `sizes` via the fulldev/ui `<Image>` primitive.
+</ParamField>
+
+Headline copy and subheading are passed through the default `<slot />` as rich text, not as props.
+
+## Storybook story
+
+The `hero-1` story exports demo args that match the Props interface above:
+
+```typescript
+// astro-app/src/components/blocks/hero-1.stories.ts
+export const Default = {
+  args: {
+    link: {
+      text: "New Feature",
+      href: "#"
+    },
+    links: [
+      { text: "Get Started", href: "#" },
+      { text: "Learn More", href: "#" }
+    ],
+    image: {
+      src: "https://placehold.co/800x400",
+      alt: "Placeholder image"
+    }
+  }
+}
+```
+
+Each hero variant (`hero-2` through `hero-14`) has its own story in the same directory under the `Blocks/Hero/` Storybook group.
+
+## Installation
+
+Install variants individually:
+
+```bash
+npx shadcn@latest add @fulldev/hero-1
+npx shadcn@latest add @fulldev/hero-2
+# ...repeat for each variant needed
+```
+
+Or install all 14 at once:
+
+```bash
+for i in $(seq 1 14); do npx shadcn@latest add @fulldev/hero-$i; done
+```
+
+<Tip>
+All hero blocks are already installed in this repo. Run `npm run storybook` and open the **Blocks → Hero** group to compare layouts before choosing a variant for a page.
+</Tip>

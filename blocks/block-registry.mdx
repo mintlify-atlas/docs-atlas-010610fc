@@ -1,0 +1,134 @@
+---
+title: "Block registry"
+description: "How block-registry.ts maps filenames to AstroComponentFactory instances and how BlockRenderer resolves components at runtime."
+---
+
+The block registry is a single TypeScript file that auto-discovers every block component and exposes them as a unified lookup map. It is the mechanism that makes the page builder work without any manual registration.
+
+## Full source
+
+```typescript
+// astro-app/src/components/block-registry.ts
+
+// All blocks — auto-discovered via import.meta.glob
+// Custom blocks: PascalCase filename → camelCase _type (e.g. HeroBanner.astro → heroBanner)
+// UI blocks: kebab-case filename used directly as _type (e.g. hero-1.astro → hero-1)
+import type { AstroComponentFactory } from 'astro/runtime/server/render/astro/factory';
+
+const allBlocks: Record<string, AstroComponentFactory> = {};
+
+const customModules = import.meta.glob('./blocks/custom/*.astro', { eager: true });
+for (const [path, mod] of Object.entries(customModules)) {
+  const filename = path.split('/').pop()!.replace('.astro', '');
+  const typeName = filename[0].toLowerCase() + filename.slice(1);
+  allBlocks[typeName] = (mod as { default: AstroComponentFactory }).default;
+}
+
+const uiModules = import.meta.glob('./blocks/*.astro', { eager: true });
+for (const [path, mod] of Object.entries(uiModules)) {
+  const name = path.split('/').pop()!.replace('.astro', '');
+  allBlocks[name] = (mod as { default: AstroComponentFactory }).default;
+}
+
+export { allBlocks };
+```
+
+## How custom blocks are mapped
+
+The custom block loop reads each `*.astro` file from `./blocks/custom/`, strips the extension, and lowercases the first character:
+
+```typescript
+const filename = path.split('/').pop()!.replace('.astro', '');
+// 'HeroBanner'
+
+const typeName = filename[0].toLowerCase() + filename.slice(1);
+// 'heroBanner'
+
+allBlocks[typeName] = (mod as { default: AstroComponentFactory }).default;
+```
+
+The resulting key must match the `name` field in the Sanity schema for that block. Because `defineBlock` creates a Sanity `object` type with the name you provide, keeping the PascalCase filename and the camelCase schema name in sync is the only naming convention you need to follow.
+
+### Current custom block registrations
+
+| Filename | Registered `_type` |
+|---|---|
+| `AnnouncementBar.astro` | `announcementBar` |
+| `ArticleList.astro` | `articleList` |
+| `ComparisonTable.astro` | `comparisonTable` |
+| `ContactForm.astro` | `contactForm` |
+| `CtaBanner.astro` | `ctaBanner` |
+| `Divider.astro` | `divider` |
+| `EventList.astro` | `eventList` |
+| `FaqSection.astro` | `faqSection` |
+| `FeatureGrid.astro` | `featureGrid` |
+| `HeroBanner.astro` | `heroBanner` |
+| `ImageGallery.astro` | `imageGallery` |
+| `LogoCloud.astro` | `logoCloud` |
+| `ProjectCards.astro` | `projectCards` |
+| `Pullquote.astro` | `pullquote` |
+| `RichText.astro` | `richText` |
+| `SponsorCards.astro` | `sponsorCards` |
+| `SponsorshipTiers.astro` | `sponsorshipTiers` |
+| `SponsorSteps.astro` | `sponsorSteps` |
+| `StatsRow.astro` | `statsRow` |
+| `TeamGrid.astro` | `teamGrid` |
+| `Testimonials.astro` | `testimonials` |
+| `TextWithImage.astro` | `textWithImage` |
+| `Timeline.astro` | `timeline` |
+| `VideoEmbed.astro` | `videoEmbed` |
+
+## How template blocks are mapped
+
+The template block loop reads each `*.astro` file from `./blocks/` (the root of the blocks directory, not `custom/`) and uses the filename verbatim as the key:
+
+```typescript
+const name = path.split('/').pop()!.replace('.astro', '');
+// 'hero-1'
+
+allBlocks[name] = (mod as { default: AstroComponentFactory }).default;
+```
+
+No transformation — the kebab-case filename becomes the `_type` string that must appear in Sanity.
+
+## The `allBlocks` export
+
+`allBlocks` is a plain `Record<string, AstroComponentFactory>`. An `AstroComponentFactory` is the internal Astro type for a renderable component — exactly what you get from a `.astro` file's default export.
+
+Only `BlockRenderer` imports `allBlocks`. Nothing else in the codebase references it directly.
+
+## How `BlockRenderer` uses `allBlocks`
+
+```astro
+{blocks.map((block) => {
+  const Component = allBlocks[block._type];
+  if (!Component) return null;
+  // ...
+  return (
+    <BlockWrapper ...>
+      <Component {...block} {...extraProps} />
+    </BlockWrapper>
+  );
+})}
+```
+
+1. `block._type` is the Sanity type name stored on each block in the `blocks[]` array.
+2. `allBlocks[block._type]` either resolves to a component or is `undefined`.
+3. If `undefined`, the block is skipped — the page renders without it and no error is thrown.
+4. If resolved, the component receives every field on the block object as a top-level prop via `{...block}`.
+
+<Warning>
+  If a block appears in Sanity but nothing renders on the page, the most common cause is a mismatch between the Sanity schema `name` and the filename-derived `_type` key. Check `allBlocks` in the browser's Vite module graph or add a `console.log(Object.keys(allBlocks))` in `BlockRenderer` to debug.
+</Warning>
+
+## Why there is no switch statement
+
+Earlier versions of similar projects use a `switch (block._type)` in the renderer with an explicit case for every block type. This creates a maintenance burden: every new block requires editing the renderer.
+
+The registry pattern eliminates that. Adding a block means:
+
+1. Drop an `.astro` file in the right directory.
+2. The `import.meta.glob` call picks it up at build time.
+3. `allBlocks` gains the new key automatically.
+
+No renderer edits. No registration file updates. No import lists.

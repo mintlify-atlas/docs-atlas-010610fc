@@ -1,0 +1,91 @@
+---
+title: "Team document"
+description: "How team member and testimonial data is modeled in the project — inline on projects and as standalone testimonial documents."
+---
+
+There is no standalone `team` document type in this project. Team membership is modeled in two places:
+
+<CardGroup cols={2}>
+  <Card title="Inline on Project" icon="users">
+    Each `project` document carries an inline `team[]` array and a `mentor` object. This is the authoritative record of who worked on a specific project.
+  </Card>
+  <Card title="Testimonial document" icon="message-square">
+    The `testimonial` document type stores quotes from students and industry contacts. A testimonial can optionally reference a project via the `project` field.
+  </Card>
+</CardGroup>
+
+## Project team fields
+
+The `team` and `mentor` fields live on the **Project** document under the **Team** tab. See the [Project document](/cms/documents/project) page for full field documentation.
+
+### `team[]` array members
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | string (required) | Student's full name |
+| `role` | string | `lead`, `developer`, `designer`, `researcher`, or `qa` |
+
+### `mentor` object
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | string (required) | Mentor's full name |
+| `title` | string | Academic or professional title |
+| `department` | string | University department or company division |
+
+## Testimonial document
+
+The `testimonial` document stores quotes that appear in `testimonials` page blocks and on project detail pages as impact case studies.
+
+<ParamField path="name" type="string" required>
+  Full name of the person giving the testimonial.
+</ParamField>
+
+<ParamField path="site" type="string">
+  Multi-site discriminator. Hidden on the `production` (Capstone) dataset.
+</ParamField>
+
+<ParamField path="quote" type="text" required>
+  The testimonial text. Displayed in `TestimonialCard.astro`.
+</ParamField>
+
+<ParamField path="role" type="string">
+  Job title or academic role of the person (e.g. `Software Engineer`, `Senior Student`).
+</ParamField>
+
+<ParamField path="organization" type="string">
+  Company or university the person is affiliated with.
+</ParamField>
+
+<ParamField path="type" type="string">
+  Categorizes the testimonial for filtering in the `testimonials` block.
+
+  | Value | Label |
+  |---|---|
+  | `industry` | Industry |
+  | `student` | Student |
+</ParamField>
+
+<ParamField path="photo" type="image">
+  Headshot of the person giving the testimonial. Supports hotspot cropping. Must include `alt` text.
+</ParamField>
+
+<ParamField path="videoUrl" type="url">
+  Optional YouTube URL for a video testimonial. Only `https://youtube.com/` and `https://youtu.be/` URLs are accepted.
+</ParamField>
+
+<ParamField path="project" type="reference → project">
+  Optional link to a specific capstone project. When set, this testimonial appears in the **Impact Case Studies** section of the linked project's detail page. Also enables `byProject` filtering mode in the `testimonials` block.
+</ParamField>
+
+## Filtering in the `testimonials` block
+
+The `resolveBlockTestimonials()` helper in `sanity.ts` filters the pre-fetched testimonial cache based on the block's `displayMode`:
+
+| Mode | Behavior |
+|---|---|
+| `all` | All testimonials |
+| `industry` | Only `type == "industry"` |
+| `student` | Only `type == "student"` |
+| `byProject` | Only testimonials with a `project` reference set |
+| `manual` | Editor-selected list from the block config |

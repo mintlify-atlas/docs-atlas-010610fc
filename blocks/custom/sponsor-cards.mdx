@@ -1,0 +1,89 @@
+---
+title: "Sponsor Cards"
+description: "Grid of rich sponsor profile cards with logo, tier badge, description, and links."
+---
+
+The `SponsorCards` block renders a two-column grid of `SponsorCard` components pulled from the `sponsor` document type. It is the primary way to showcase current program sponsors on a page with full profile detail — logo, name, tier, description, and website.
+
+<Note>
+  Unlike `LogoCloud`, this block renders full cards rather than compact logo tiles. Use `SponsorCards` for dedicated sponsor showcase pages and `LogoCloud` for compact presence on other pages.
+</Note>
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>` above the grid at `4xl`–`5xl`.
+</ParamField>
+
+<ParamField path="displayMode" type="'all' | 'featured' | 'manual'">
+  Controls how the sponsor list is sourced:
+  - `all` — queries all active sponsors (default)
+  - `featured` — queries only sponsors with `featured: true`
+  - `manual` — uses the explicit `sponsors` reference array below
+</ParamField>
+
+<ParamField path="sponsors" type="Sponsor[]">
+  Array of resolved `sponsor` document references. Only visible and required in Studio when `displayMode` is `manual`. The GROQ query resolves references before passing them to the component.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token. Defaults to `white`.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Sponsor Cards** block to any page's **Blocks** array.
+2. Set an optional **Heading** (e.g. "Our Industry Partners").
+3. Choose a **Display Mode**:
+   - Leave as **All** to automatically show every published sponsor.
+   - Switch to **Featured** to show only sponsors marked featured in their document.
+   - Switch to **Manual** to hand-pick specific sponsors via the **Sponsors** reference list.
+4. Sponsors are managed in the **Sponsors** section of the Studio sidebar — not within the block itself.
+
+<Warning>
+  In `manual` mode, the block requires at least one sponsor reference. Studio will show a validation error if the array is empty.
+</Warning>
+
+## Variants / Options
+
+This block does not have a `variant` field. The grid is always two columns (`SectionGrid size="lg"`).
+
+## Example
+
+```typescript
+{
+  _type: 'sponsorCards',
+  heading: 'Current Partners',
+  displayMode: 'featured',
+}
+```
+
+For a manually curated list:
+
+```typescript
+{
+  _type: 'sponsorCards',
+  heading: 'Gold Sponsors',
+  displayMode: 'manual',
+  sponsors: [
+    { _ref: 'sponsor-doc-id-1', _type: 'reference' },
+    { _ref: 'sponsor-doc-id-2', _type: 'reference' },
+  ]
+}
+```

@@ -1,0 +1,143 @@
+---
+title: "Performance targets"
+description: "Lighthouse score requirements, Core Web Vitals targets, asset budgets, and how static HTML achieves near-zero TBT."
+---
+
+Every page must meet these performance targets before merging. Lighthouse CI enforces them automatically on PRs to `preview`.
+
+## Targets at a glance
+
+| Metric | Target |
+|---|---|
+| Lighthouse Performance | **95+** |
+| Lighthouse Accessibility | **90+** |
+| Lighthouse Best Practices | 90+ |
+| Lighthouse SEO | 90+ |
+| Cumulative Layout Shift (CLS) | **< 0.05** |
+| Total Blocking Time (TBT) | **~0 ms** |
+| JS payload | **< 5KB minified** |
+| CSS payload | **< 15KB after Tailwind purge** |
+
+## Why the targets are achievable
+
+The production architecture is designed from first principles to eliminate the main sources of web performance overhead.
+
+### Zero framework runtime
+
+No React, Vue, Svelte, or other JavaScript framework ships to the browser for public pages. All UI is rendered to static HTML at build time by Astro's SSG pipeline. The only JavaScript on production pages is small vanilla handlers using data-attribute event delegation — each under 50 lines.
+
+**Impact:** Total Blocking Time stays at or near **0 ms**. The browser has no framework to parse, compile, or execute before the page becomes interactive.
+
+### Static HTML from CDN edge
+
+`output: "static"` in `astro.config.mjs` pre-renders every public page at build time. Cloudflare Pages serves these files directly from the edge CDN node nearest to the visitor — no origin server round-trip, no server-side rendering latency for public routes.
+
+**Impact:** First Contentful Paint (FCP) and Largest Contentful Paint (LCP) are fast even on throttled 4G connections, because the HTML is already at the edge.
+
+### Tailwind CSS purge
+
+Tailwind v4 uses a CSS-first configuration (`@import "tailwindcss"` in `global.css`, no `tailwind.config.mjs`). At build time, only the utility classes actually referenced in `.astro` component templates survive — all other classes are tree-shaken.
+
+**Impact:** CSS payload stays under 15KB in production. No runtime style injection, no FOUC.
+
+### No layout shift
+
+All images include explicit `width` and `height` attributes. Sanity's image pipeline provides Low Quality Image Placeholders (LQIP) for above-the-fold images, which reserve space before the full image loads.
+
+**Impact:** Cumulative Layout Shift (CLS) < 0.05.
+
+## Detailed targets
+
+### Lighthouse Performance (95+)
+
+Lighthouse Performance is a weighted composite of:
+
+| Metric | Weight | Target |
+|---|---|---|
+| First Contentful Paint | 10% | Fast |
+| Largest Contentful Paint | 25% | Fast |
+| Total Blocking Time | 30% | ~0ms |
+| Cumulative Layout Shift | 15% | < 0.05 |
+| Speed Index | 10% | Fast |
+| Interaction to Next Paint | 10% | Fast |
+
+TBT has the highest single weight (30%). Since TBT is near zero (no framework runtime), a 95+ score is achievable even if other metrics are not perfect.
+
+### Lighthouse Accessibility (90+)
+
+Accessibility is tested with axe-core in the Playwright E2E suite (WCAG 2.1 AA) and validated by Lighthouse in CI. Requirements:
+
+- All images have descriptive `alt` text
+- Color contrast ratios meet WCAG AA minimums
+- Interactive elements are keyboard-navigable
+- ARIA roles are used correctly
+- Form fields have associated labels
+- Heading hierarchy is logical (`h1` → `h2` → `h3`)
+
+### CLS < 0.05
+
+Cumulative Layout Shift measures visual instability — elements shifting position after initial render. Common causes:
+
+<CardGroup cols={2}>
+  <Card title="Images without dimensions" icon="ban">
+    Browsers cannot reserve space for images without known dimensions. Always specify `width` and `height` on `<img>` elements, or use Astro's `<Image>` component which infers dimensions automatically.
+  </Card>
+  <Card title="Web font swap" icon="font">
+    Font loading with `font-display: swap` can cause text to reflow. Use `font-display: optional` for decorative fonts or preload critical fonts.
+  </Card>
+  <Card title="Late-injected content" icon="ban">
+    Ads, embeds, or dynamically injected banners that shift layout after paint. Avoid dynamically inserting content above existing content.
+  </Card>
+  <Card title="LQIP placeholders" icon="circle-check">
+    Sanity's image pipeline generates Low Quality Image Placeholders. Use them for above-the-fold images to reserve space while the full image loads.
+  </Card>
+</CardGroup>
+
+### JS payload < 5KB
+
+The 5KB budget covers all JavaScript shipped to production browsers — after minification and compression.
+
+**What ships:**
+- Vanilla JS event handlers for interactive elements (FAQ accordion, carousel, contact form)
+- Each handler uses data-attribute event delegation, not per-element listeners
+- No hydration runtime, no component tree, no virtual DOM
+
+**What does not ship:**
+- Astro component JavaScript (runs at build time only)
+- React (used only for Sanity Visual Editing, which is OFF in production)
+- Any npm package not explicitly imported in a `<script>` tag
+
+### CSS payload < 15KB
+
+Tailwind v4's tree-shaking typically produces 8–12KB of CSS for a site of this size. The 15KB budget includes:
+
+- Tailwind utility classes (only used ones)
+- CSS custom properties (design tokens in `global.css`)
+- `@keyframes` animations
+- Third-party CSS (iconify, etc.) if any
+
+**Does not include:**
+- Unused Tailwind utilities
+- Unused CSS from npm packages
+- Runtime-injected styles
+
+## Optimization checklist
+
+Before opening a PR, verify:
+
+- [ ] No new npm packages with large client-side bundles (check `import` statements in `<script>` tags)
+- [ ] New images use Astro's `<Image>` component or have explicit `width`/`height`
+- [ ] New interactive components use data-attribute event delegation, not per-element `addEventListener` calls
+- [ ] No `font-display: swap` for critical text fonts
+- [ ] New blocks do not inject content above the fold dynamically after paint
+- [ ] Run `npm run build --workspace=astro-app && npx lhci autorun` locally before pushing
+
+## Monitoring in production
+
+Lighthouse CI runs on PRs but not on production deployments. Monitor production performance via:
+
+- **Google Search Console** — Core Web Vitals report (field data from real users)
+- **Cloudflare Analytics** — Page load times by geography
+- **GA4** — `web_vitals` events if configured in GTM
+
+If a production regression is discovered, open a `fix:` or `perf:` PR with the fix targeting `preview` first.

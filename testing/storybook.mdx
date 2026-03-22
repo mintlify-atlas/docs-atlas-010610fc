@@ -1,0 +1,188 @@
+---
+title: "Storybook"
+description: "Storybook 10 with the storybook-astro renderer for isolated component development and visual testing of the block library."
+---
+
+[Storybook](https://storybook.js.org/) runs alongside the Astro app for component development and visual testing. Every custom block has a `.stories.ts` file with realistic demo data. Storybook is automatically deployed to GitHub Pages on pushes to `main`.
+
+## Running Storybook
+
+```bash
+# Storybook alone (port 6006)
+npm run storybook
+
+# Storybook alongside Astro dev server and Sanity Studio
+npm run dev:storybook
+```
+
+Open `http://localhost:6006` to browse the component library.
+
+<Note>
+`npm run dev:storybook` starts all three servers concurrently: Astro (port 4321), Sanity Studio (port 3333), and Storybook (port 6006). Use this when developing new blocks so you can preview them in both the CMS context and in isolation.
+</Note>
+
+## Setup
+
+Storybook uses the `storybook-astro` renderer with `@storybook/builder-vite`. The configuration lives in `astro-app/.storybook/`:
+
+```text
+astro-app/
+└── .storybook/
+    ├── main.ts                  # Framework, addons, Vite plugins, story glob
+    ├── preview.ts               # Global decorators, backgrounds, global.css import
+    └── patched-entry-preview.ts # Production build renderer patch
+```
+
+### main.ts highlights
+
+The Storybook Vite config includes several custom plugins to make Astro components render correctly outside the Astro build pipeline:
+
+- **`astroAssetsStub()`** — Replaces `astro:assets` with a plain `<img>` component so the Astro image service is not loaded.
+- **`astroVirtualModuleStubs()`** — Stubs `virtual:astro-icon`, `sanity:client`, `astro:actions`, and Astro font virtual modules. Loads real Lucide and Simple Icons data from `@iconify-json` packages so icons render.
+- **`lucideStaticSvgStub()`** — Intercepts `lucide-static` SVG imports and provides inline SVG Astro components, bypassing Astro's image service.
+- **`tailwindcss()`** — Injects Tailwind CSS v4 via the Vite plugin so all utility classes apply in Storybook.
+
+The stories glob pattern: `../src/**/*.stories.@(js|jsx|ts|tsx)`
+
+### preview.ts
+
+```typescript
+import '../src/styles/global.css'
+
+const preview = {
+  parameters: {
+    layout: 'padded',
+    backgrounds: {
+      options: {
+        light: { name: 'Light', value: '#ffffff' },
+        dark: { name: 'Dark', value: '#1a1a2e' },
+      },
+    },
+  },
+}
+export default preview
+```
+
+The `global.css` import ensures Tailwind CSS v4 variables and theme tokens apply to all stories.
+
+## Story file conventions
+
+Every custom block in `src/components/blocks/custom/` has a co-located `.stories.ts` file. Stories use the Component Story Format (CSF) with inline `args` that match the block's flat props interface.
+
+### Story file structure
+
+```typescript
+// astro-app/src/components/blocks/custom/FaqSection.stories.ts
+import FaqSection from './FaqSection.astro'
+
+export default {
+  title: 'Blocks/FaqSection',
+  component: FaqSection,
+  tags: ['autodocs'],
+}
+
+export const Default = {
+  args: {
+    _type: 'faqSection',
+    _key: 'story-faq-1',
+    heading: 'Frequently Asked Questions',
+    items: [
+      {
+        _key: 'q1',
+        question: 'What is the capstone program?',
+        answer: 'The YWCC Industry Capstone connects senior CS students with industry sponsors...',
+      },
+    ],
+  },
+}
+
+export const Minimal = {
+  args: {
+    _type: 'faqSection',
+    _key: 'story-faq-2',
+    heading: 'Questions',
+    items: [
+      { _key: 'q1', question: 'Short question?', answer: 'Short answer.' },
+    ],
+  },
+}
+```
+
+Key conventions:
+
+- `title` follows the `'Category/BlockName'` pattern (e.g., `'Blocks/HeroBanner'`).
+- `tags: ['autodocs']` generates an automatic documentation page from the component's prop types.
+- `args` use the same flat props the block receives via `<Component {...block} />`.
+- Include `_type` and `_key` in args — blocks expect these Sanity-standard fields.
+- Export at least two stories per block: `Default` and a variant (e.g., `Minimal`, `Dark`, `WithImage`).
+
+## Custom blocks with stories
+
+All custom blocks in `src/components/blocks/custom/` have Storybook stories:
+
+<CardGroup cols={2}>
+  <Card title="HeroBanner" icon="image">
+    Heading, subheading, CTA buttons, optional background image carousel. Stories cover default layout and minimal variants.
+  </Card>
+  <Card title="FeatureGrid" icon="grid-2x2">
+    Icon/image + title + description cards. Stories show different column counts and icon styles.
+  </Card>
+  <Card title="SponsorCards" icon="building">
+    Sponsor documents with tier badges. Stories use mock sponsor data matching the Sanity schema shape.
+  </Card>
+  <Card title="FaqSection" icon="circle-help">
+    Expandable question/answer pairs with keyboard accessibility. Stories cover full FAQ sets and minimal two-item variants.
+  </Card>
+  <Card title="CtaBanner" icon="megaphone">
+    Heading, description, and action buttons. Stories demonstrate light and dark background variants.
+  </Card>
+  <Card title="StatsRow" icon="bar-chart">
+    Stat cards with heading and dark/light variant support. Stories show numeric and percentage stats.
+  </Card>
+  <Card title="RichText" icon="text">
+    Portable Text renderer with inline images and callout boxes. Stories use serialized Portable Text arrays.
+  </Card>
+  <Card title="TextWithImage" icon="layout-panel-left">
+    Portable text content alongside a positioned image. Stories cover left/right image placement.
+  </Card>
+</CardGroup>
+
+UI primitive stories live in `src/components/ui/` alongside their component files:
+
+- `button/button.stories.ts`
+- `badge/badge.stories.ts`
+- `avatar/avatar.stories.ts`
+- `accordion/accordion.stories.ts`
+
+Slot-based UI components have `*Story.astro` wrapper files (`ButtonStory.astro`, etc.) that pre-populate slots so Storybook can render them without JSX.
+
+## Deployed Storybook
+
+Storybook builds and deploys to GitHub Pages automatically via `.github/workflows/deploy-storybook.yml` on every push to `main` that touches component files. The workflow can also be triggered manually from the Actions tab.
+
+The deployed Storybook is the canonical component reference for the project — it shows every block with realistic data and both light/dark background options.
+
+## Integration tests for Storybook
+
+The integration test file `tests/integration/storybook-1-4.test.ts` validates the Storybook setup without running a browser:
+
+- `.storybook/main.ts` configures `storybook-astro` framework
+- `.storybook/preview.ts` imports `global.css`
+- All custom block story files exist and have a default export, `title`, `component`, and at least one named story
+- UI primitive story files and `*Story.astro` wrappers exist
+- `package.json` has `storybook` and `build-storybook` scripts
+- `storybook build` succeeds and produces a valid `iframe.html` (> 1 KB — not an empty chunk)
+
+```bash
+# Run Storybook integration tests only
+npx vitest run tests/integration/storybook-1-4.test.ts
+```
+
+## Dependencies
+
+| Package | Purpose |
+|---|---|
+| `storybook` | Core Storybook framework |
+| `storybook-astro` | Astro component renderer for Storybook |
+| `@storybook/addon-docs` | Auto-generated docs from prop types and JSDoc |
+| `@storybook/builder-vite` | Vite build pipeline for Storybook |

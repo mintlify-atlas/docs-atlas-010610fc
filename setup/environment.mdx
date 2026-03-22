@@ -1,0 +1,215 @@
+---
+title: "Environment variables"
+description: "All environment variables for the YWCC Capstone Astro app, with instructions for finding each value."
+---
+
+Environment variables live in `astro-app/.env` for local development. Copy the example file to get started:
+
+```bash
+cp astro-app/.env.example astro-app/.env
+```
+
+For production, variables are set in the **Cloudflare Pages dashboard** for each project — the `.env` file is not deployed.
+
+<Warning>Never commit your `.env` file to version control. It is listed in `.gitignore` by default. Server-side secrets (tokens, OAuth credentials) must never appear in public-prefixed variables.</Warning>
+
+## Sanity configuration
+
+These variables connect the Astro app and Sanity Studio to your Sanity project.
+
+### `PUBLIC_SANITY_STUDIO_PROJECT_ID`
+
+**Required.** Your Sanity project ID.
+
+```bash
+PUBLIC_SANITY_STUDIO_PROJECT_ID="abc123xy"
+```
+
+To find your project ID:
+1. Go to [sanity.io/manage](https://sanity.io/manage).
+2. Select your project.
+3. The project ID appears in the URL and on the project overview page.
+
+<Note>This variable used to be `PUBLIC_SANITY_PROJECT_ID` in older versions of the project. Both names are supported in `astro.config.mjs`, but prefer the `PUBLIC_SANITY_STUDIO_PROJECT_ID` form as shown in `.env.example`.</Note>
+
+### `PUBLIC_SANITY_DATASET`
+
+**Required.** The Sanity dataset to query. Defaults to `production`.
+
+```bash
+PUBLIC_SANITY_DATASET="production"
+```
+
+The project supports multiple datasets for multi-site deployments:
+
+| Dataset | Site | Theme |
+|---|---|---|
+| `production` | YWCC Capstone (default) | Red |
+| `rwc` | RWC US or RWC International | Blue / Green |
+
+### `SANITY_API_READ_TOKEN`
+
+**Required for Visual Editing.** A Sanity API token with Viewer permissions, used to fetch draft content in the Presentation tool.
+
+```bash
+SANITY_API_READ_TOKEN="sk..."
+```
+
+To generate a token:
+1. Go to [sanity.io/manage](https://sanity.io/manage) and select your project.
+2. Navigate to **Settings → API → Tokens**.
+3. Click **Add API token**, give it a name (e.g., `local-visual-editing`), and set the role to **Viewer**.
+4. Copy the token — it is only shown once.
+
+<Warning>This is a server-side secret. It does not have the `PUBLIC_` prefix and is never exposed to the browser. Keep it out of version control.</Warning>
+
+## Multi-site configuration
+
+The platform supports multiple sites from a single codebase. These variables control which site context and theme are active at build time.
+
+### `PUBLIC_SITE_ID`
+
+Identifies the active site. Controls dataset selection, navigation, and theme.
+
+```bash
+PUBLIC_SITE_ID="capstone"   # YWCC Capstone (default)
+PUBLIC_SITE_ID="rwc-us"     # RWC US site
+PUBLIC_SITE_ID="rwc-intl"   # RWC International site
+```
+
+### `PUBLIC_SITE_THEME`
+
+Sets the color theme for the active site. Must be one of `red`, `blue`, or `green`.
+
+```bash
+PUBLIC_SITE_THEME="red"     # Capstone (default)
+PUBLIC_SITE_THEME="blue"    # RWC US
+PUBLIC_SITE_THEME="green"   # RWC International
+```
+
+<Note>If an invalid theme is provided, the build falls back to `red` and logs a warning in the console.</Note>
+
+## Visual Editing
+
+### `PUBLIC_SANITY_VISUAL_EDITING_ENABLED`
+
+Enables or disables Sanity's Visual Editing overlay (stega encoding + Presentation tool).
+
+```bash
+PUBLIC_SANITY_VISUAL_EDITING_ENABLED="true"    # Enable (preview/SSR mode)
+PUBLIC_SANITY_VISUAL_EDITING_ENABLED="false"   # Disable (production/static mode)
+```
+
+When `true`, the Sanity client bypasses the CDN and fetches live draft content. This is automatically enabled on the `preview` branch in Cloudflare Pages.
+
+### `PUBLIC_SANITY_LIVE_CONTENT_ENABLED`
+
+Enables client-side live content subscriptions via the Live Content API. Allows content updates to appear in the browser without a full page reload.
+
+```bash
+PUBLIC_SANITY_LIVE_CONTENT_ENABLED="false"   # Disabled by default
+PUBLIC_SANITY_LIVE_CONTENT_ENABLED="true"    # Enable real-time updates
+```
+
+## URLs and routing
+
+### `PUBLIC_SANITY_STUDIO_URL`
+
+The base URL of your Sanity Studio. Used by the Visual Editing stega overlay to generate "Edit in Studio" links.
+
+```bash
+PUBLIC_SANITY_STUDIO_URL="http://localhost:3333"              # local dev (default)
+PUBLIC_SANITY_STUDIO_URL="https://ywcccapstone.sanity.studio" # production
+```
+
+### `PUBLIC_SITE_URL`
+
+The canonical URL of the deployed site. Used for generating canonical `<link>` tags and the sitemap.
+
+```bash
+PUBLIC_SITE_URL="https://ywcc-capstone.pages.dev"
+```
+
+## Analytics and integrations
+
+### `PUBLIC_GTM_ID`
+
+Google Tag Manager container ID. Leave empty to disable tracking.
+
+```bash
+PUBLIC_GTM_ID="GTM-XXXXXXXX"   # replace with your container ID
+PUBLIC_GTM_ID=""               # disables GTM
+```
+
+### `PUBLIC_TURNSTILE_SITE_KEY`
+
+Cloudflare Turnstile site key for bot protection on forms. Obtain from the Cloudflare dashboard under **Turnstile**.
+
+```bash
+PUBLIC_TURNSTILE_SITE_KEY="0x4AAAAAAA..."
+```
+
+## Server-side secrets
+
+The following secrets are server-side only and must never have the `PUBLIC_` prefix. For local development, set them in `astro-app/.dev.vars` (for Wrangler) or your `.env` file. For production, use `wrangler secret put <NAME>` or the Cloudflare Pages dashboard.
+
+| Variable | Source | Purpose |
+|---|---|---|
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile dashboard | Validates Turnstile tokens server-side |
+| `DISCORD_WEBHOOK_URL` | Discord channel → Integrations → Webhooks | Posts release notifications |
+| `SANITY_API_WRITE_TOKEN` | manage.sanity.io → Settings → API → Tokens (Editor role) | Writes form submissions to Sanity |
+| `GOOGLE_CLIENT_ID` | Google Cloud Console OAuth app | Google OAuth login |
+| `GOOGLE_CLIENT_SECRET` | Google Cloud Console OAuth app | Google OAuth login |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App settings | GitHub OAuth login |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App settings | GitHub OAuth login |
+| `BETTER_AUTH_SECRET` | Generate a random 32+ character string | Signs session tokens |
+| `BETTER_AUTH_URL` | Your deployment URL | Absolute URL for auth redirects |
+| `RESEND_API_KEY` | [resend.com](https://resend.com) dashboard | Sends magic link emails |
+| `RESEND_FROM_EMAIL` | Your verified sender address | From address for magic link emails |
+
+<Tip>For local development, most server-side secrets are not needed. The middleware bypasses authentication when `import.meta.env.DEV` is `true`.</Tip>
+
+## Complete `.env.example`
+
+For reference, here is the full `.env.example` file from the repository:
+
+```bash
+# Remember to add PUBLIC_ if generated by npx sanity init --env
+PUBLIC_SANITY_STUDIO_PROJECT_ID="<your-project-id>"
+PUBLIC_SANITY_STUDIO_DATASET="production"
+
+# Multi-Site Configuration (Epic 15)
+PUBLIC_SANITY_DATASET="production"
+PUBLIC_SITE_ID="capstone"
+PUBLIC_SITE_THEME="red"
+
+# Visual Editing / Presentation Tool
+PUBLIC_SANITY_VISUAL_EDITING_ENABLED="true"
+SANITY_API_READ_TOKEN="<your-read-token>"
+
+# Live Content API (real-time content updates without full rebuild)
+PUBLIC_SANITY_LIVE_CONTENT_ENABLED="false"
+
+# Google Tag Manager (leave empty to disable tracking)
+PUBLIC_GTM_ID="GTM-XXXXXXXX"
+
+# Sanity Studio URL (for Visual Editing "Edit in Studio" links)
+PUBLIC_SANITY_STUDIO_URL="http://localhost:3333"
+
+# Production site URL (used for canonical URLs and sitemap)
+PUBLIC_SITE_URL="https://ywcc-capstone.pages.dev"
+
+# Cloudflare Turnstile (bot protection)
+PUBLIC_TURNSTILE_SITE_KEY="<your-turnstile-site-key>"
+
+# Server-side secrets — set in .dev.vars for local, wrangler secret put for prod
+# TURNSTILE_SECRET_KEY
+# DISCORD_WEBHOOK_URL
+# SANITY_API_WRITE_TOKEN
+# GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+# GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
+# BETTER_AUTH_SECRET
+# BETTER_AUTH_URL
+# RESEND_API_KEY
+# RESEND_FROM_EMAIL
+```

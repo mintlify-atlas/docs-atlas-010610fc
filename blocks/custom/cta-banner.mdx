@@ -1,0 +1,99 @@
+---
+title: "CTA Banner"
+description: "Conversion-focused call-to-action section with heading, description, buttons, and four layout variants."
+---
+
+The `CtaBanner` block is a mid-page conversion prompt. It pairs a heading and description with one or more CTA buttons and supports four layout variants — from a simple centred strip to a full image overlay. The `backgroundVariant` field adjusts button colour treatment to maintain contrast on different backgrounds.
+
+## Props
+
+<ParamField path="heading" type="string" required>
+  Section heading rendered as `<h2>` at `4xl`–`5xl`. Required — Studio validation prevents saving without it.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting text below the heading. Rendered as a paragraph with `text-muted-foreground` styling.
+</ParamField>
+
+<ParamField path="ctaButtons" type="Button[]" required>
+  Array of button objects. At least one button is required. The first button uses the primary style; subsequent buttons use outline style (adjusted per `backgroundVariant`).
+</ParamField>
+
+<ParamField path="backgroundImages" type="SanityImageObject[]">
+  Array of images with hotspot support. Only the first image is used. Hidden in Studio when `variant` is `centered` or `spread`. Required for `split` (right panel) and `overlay` (full-width background) variants.
+</ParamField>
+
+<ParamField path="variant" type="'centered' | 'split' | 'spread' | 'overlay'">
+  Layout variant. Defaults to `centered`. See [Variants](#variants--options) for details.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour of the section. Adjusts button colour classes:
+  - `primary` — primary button uses `bg-background text-primary`; secondary uses inverted border.
+  - `dark` — secondary button uses `border-background text-background` with hover inversion.
+  - `white` / `light` — standard button styles.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+### Button fields
+
+```typescript
+{
+  text: string;          // required
+  url: string;           // required — path or absolute URL
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost';
+}
+```
+
+## Usage in Sanity Studio
+
+1. Add a **CTA Banner** block to a page.
+2. Enter a **Heading** and optional **Description**.
+3. Add at least one **CTA Button** with text and URL.
+4. Expand **Layout Options** and choose a **Variant**.
+5. If using `split` or `overlay`, upload a **Background Image** with alt text.
+6. Set **Background Variant** to match your design — this automatically adjusts button contrast colours.
+
+<Warning>
+  When `variant` is `split` or `overlay`, the **Background Images** field is shown and should contain at least one image. Without an image, the `split` variant shows an empty right panel and `overlay` renders without a background image.
+</Warning>
+
+## Variants / Options
+
+| Variant | Layout | Image usage |
+|---|---|---|
+| `centered` | Content centred, `max-w-3xl` | No image |
+| `split` | Text + buttons left, image right (50/50) | First image, `960×1080` |
+| `spread` | Heading left, buttons pinned right | No image |
+| `overlay` | Full-width image background, centred text on top | First image, `1920×600` with `60%` dark overlay |
+
+## Example
+
+```typescript
+{
+  _type: 'ctaBanner',
+  heading: 'Ready to Sponsor a Team?',
+  description: 'Join 50+ companies shaping the next generation of software engineers.',
+  variant: 'spread',
+  backgroundVariant: 'white',
+  ctaButtons: [
+    { text: 'Become a Sponsor', url: '/sponsor', variant: 'default' },
+    { text: 'View Tiers',       url: '/tiers',   variant: 'outline' }
+  ]
+}
+```

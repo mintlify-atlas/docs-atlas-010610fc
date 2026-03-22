@@ -1,0 +1,106 @@
+---
+title: "Event document"
+description: "Schema fields for the event document type, which represents workshops, showcases, and networking events."
+---
+
+The `event` document represents a scheduled event — a showcase, workshop, networking session, or lecture. Events appear in `eventList` page blocks and on dedicated detail pages at `/events/[slug]`. The Studio supports three orderings: by date descending, date ascending, and title.
+
+## Fields
+
+### Main group
+
+<ParamField path="title" type="string" required>
+  Event name. Used as the display title in the Studio preview and as the source for the auto-generated slug.
+</ParamField>
+
+<ParamField path="slug" type="slug" required>
+  URL slug for the event detail page (`/events/[slug]`). Auto-generated from `title` (max 96 characters).
+</ParamField>
+
+<ParamField path="site" type="string">
+  Multi-site discriminator. Hidden on the `production` (Capstone) dataset. Required on the `rwc` dataset.
+</ParamField>
+
+<ParamField path="date" type="datetime" required>
+  Start date and time of the event. Used for ordering and for the upcoming/past status fallback logic.
+</ParamField>
+
+<ParamField path="endDate" type="datetime">
+  End date and time. Optional. Custom validation ensures `endDate` is after `date` when both are set.
+</ParamField>
+
+<ParamField path="location" type="string">
+  Physical or virtual location (e.g. `GITC 3rd Floor`, `Zoom`). Displayed on event cards and the detail page.
+</ParamField>
+
+<ParamField path="description" type="text">
+  Short description of the event. Displayed in event list items and the detail page.
+</ParamField>
+
+<ParamField path="isAllDay" type="boolean">
+  When `true`, no time is shown alongside the date. Defaults to `false`.
+</ParamField>
+
+<ParamField path="category" type="string">
+  Semantic event category. The front end maps categories to calendar colors in the `eventList` block.
+
+  | Value | Label |
+  |---|---|
+  | `workshop` | Workshop |
+  | `lecture` | Lecture |
+  | `social` | Social |
+  | `competition` | Competition |
+  | `other` | Other |
+</ParamField>
+
+<ParamField path="eventType" type="string">
+  Program format — describes the type of event from a program perspective. Use `category` for semantic classification that drives calendar colors.
+
+  | Value | Label |
+  |---|---|
+  | `showcase` | Showcase |
+  | `networking` | Networking |
+  | `workshop` | Workshop |
+</ParamField>
+
+<ParamField path="status" type="string">
+  Explicit upcoming/past flag. Takes priority over date comparison in `resolveBlockEvents()`. Defaults to `upcoming`.
+
+  | Value | Label |
+  |---|---|
+  | `upcoming` | Upcoming |
+  | `past` | Past |
+</ParamField>
+
+### SEO group
+
+<ParamField path="seo" type="seo object">
+  SEO metadata for the event detail page.
+</ParamField>
+
+## Filtering in the `eventList` block
+
+The `resolveBlockEvents()` helper in `sanity.ts` filters the pre-fetched event cache based on the block's `filterBy` setting and applies the `limit`:
+
+| Filter | Behavior |
+|---|---|
+| `upcoming` | Events where `status == "upcoming"`, or no status and `date >= now` (sorted ascending) |
+| `past` | Events where `status == "past"`, or no status and `date < now` (sorted descending) |
+| `all` | All events, sorted by date ascending |
+
+The `status` field takes priority over date comparison. Set `status` explicitly when an event's date has passed but you want it to remain in the upcoming list (or vice versa).
+
+## Date range query
+
+For calendar month navigation, `EVENTS_BY_MONTH_QUERY` is available for fetching events within a specific date range:
+
+```groq
+*[_type == "event"
+  && dateTime(date) >= dateTime($monthStart)
+  && dateTime(date) <= dateTime($monthEnd)
+  && ($site == "" || site == $site)
+] | order(date asc) {
+  _id, title, "slug": slug.current, date, endDate,
+  location, eventType, status, description, isAllDay, category
+}
+```

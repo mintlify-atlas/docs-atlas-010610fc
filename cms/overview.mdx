@@ -1,0 +1,80 @@
+---
+title: "Sanity Studio overview"
+description: "How Sanity Studio is configured and used as the headless CMS for the YWCC Industry Capstone site."
+---
+
+Sanity Studio is the browser-based CMS that powers all content on the Capstone site. Editors create and publish pages, sponsors, projects, events, and global site settings from Studio, and those changes appear on the Astro front end at the next build (static mode) or immediately (Visual Editing preview mode).
+
+## Two workspaces
+
+This project runs **two Sanity workspaces** inside a single Studio deployment, each backed by a different dataset:
+
+<CardGroup cols={2}>
+  <Card title="Capstone Sponsors" icon="rocket">
+    Dataset: `production`\
+    URL path: `/capstone`\
+    Manages sponsor, project, event, and page content for the main YWCC Capstone site.
+  </Card>
+  <Card title="RWC Programs" icon="users">
+    Dataset: `rwc`\
+    URL path: `/rwc`\
+    Manages content for the Returning Women in Computing program, with per-site filtering (`rwc-us` / `rwc-intl`).
+  </Card>
+</CardGroup>
+
+The workspace split is defined in `studio/sanity.config.ts`. Each workspace has its own desk structure, presentation preview origin, and schema template list.
+
+## Running Studio locally
+
+<Steps>
+  <Step title="Install dependencies">
+    From the monorepo root:
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Configure environment variables">
+    Copy `studio/.env.example` to `studio/.env.local` and fill in your Sanity project ID:
+    ```bash
+    SANITY_STUDIO_PROJECT_ID=your_project_id
+    SANITY_STUDIO_PREVIEW_ORIGIN=http://localhost:4321
+    SANITY_STUDIO_RWC_PREVIEW_ORIGIN=http://localhost:4322
+    ```
+  </Step>
+  <Step title="Start Studio">
+    ```bash
+    cd studio && npx sanity dev
+    ```
+    Studio opens at **http://localhost:3333**. Navigate to `/capstone` or `/rwc` to switch workspaces.
+  </Step>
+</Steps>
+
+## Signing in
+
+Studio uses Sanity's built-in authentication. Sign in with the Google or GitHub account that has been granted access to the Sanity project. Ask the project owner to invite you at **manage.sanity.io → your project → Members**.
+
+## Document types available
+
+The following document types are available to editors. See the **Document Types** section in this tab for field-level documentation for each.
+
+| Document type | Purpose |
+|---|---|
+| **Page** | Any URL-addressable page built from content blocks |
+| **Sponsor** | Industry sponsor profile with logo, tier, and portal access |
+| **Project** | Capstone team project linked to a sponsor |
+| **Testimonial** | Quote from a student or industry contact |
+| **Event** | Workshop, showcase, or networking event |
+| **Site Settings** | Singleton — global nav, footer, branding, social links |
+| **Submission** | Form submission received from the contact form |
+
+## Deployed Studio
+
+The production Studio is deployed to Sanity hosting. Run the following from the `studio` directory to deploy:
+
+```bash
+npx sanity deploy
+```
+
+<Note>
+  The Capstone and RWC workspaces share a single Studio deployment. Editors choose their workspace from the workspace selector at the top of the Studio UI.
+</Note>

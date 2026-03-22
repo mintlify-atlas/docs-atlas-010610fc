@@ -1,0 +1,163 @@
+---
+title: "Feature blocks"
+description: "6 fulldev/ui feature variants (features-1 through features-6) for icon and card grid layouts that highlight product or service capabilities."
+---
+
+Feature blocks display a grid of capability tiles — each tile typically has an icon, a title, a short description, and an optional link. All 6 variants use the same flat-props interface and share the `SectionGrid` + `Tile` primitive composition.
+
+## Variants
+
+<CardGroup cols={2}>
+  <Card title="features-1" icon="grid-2x2">
+    Three-column icon tile grid with section heading, description prose, and two CTA buttons above the grid.
+  </Card>
+  <Card title="features-2" icon="grid-2x2">
+    Two-column card grid with larger tiles and more prominent imagery.
+  </Card>
+  <Card title="features-3" icon="grid-2x2">
+    Single-column list layout: icon tiles stacked vertically for scannable feature lists.
+  </Card>
+  <Card title="features-4" icon="grid-2x2">
+    Four-column compact icon grid, suited for dense feature comparisons.
+  </Card>
+  <Card title="features-5" icon="grid-2x2">
+    Three-column grid with numbered tiles instead of icons.
+  </Card>
+  <Card title="features-6" icon="grid-2x2">
+    Alternating icon tile layout with section prose interspersed between rows.
+  </Card>
+</CardGroup>
+
+## Sanity `_type` names
+
+```
+features-1.astro  →  _type: "features-1"
+features-2.astro  →  _type: "features-2"
+...through features-6
+```
+
+## Props interface
+
+`features-1.astro` is the canonical reference for all feature block variants:
+
+```typescript
+// astro-app/src/components/blocks/features-1.astro
+interface Props {
+  class?: string
+  id?: string
+  links?: {
+    icon?: string
+    text?: string
+    href?: string
+    target?: string
+  }[]
+  items?: {
+    title?: string
+    description?: string
+    icon?: string
+    href?: string
+    links?: {
+      icon?: string
+      text?: string
+      href?: string
+      target?: string
+    }[]
+  }[]
+}
+```
+
+<ParamField path="class" type="string">
+  Additional CSS classes forwarded to the root `<Section>` element.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` attribute for anchor navigation.
+</ParamField>
+
+<ParamField path="links" type="object[]">
+  Section-level CTA buttons rendered above the grid. First item uses `default` variant, remaining use `outline`. Each item accepts `icon`, `text`, `href`, and `target`.
+</ParamField>
+
+<ParamField path="items" type="object[]">
+  Array of feature tiles. Each tile accepts:
+  - `title` — tile heading text
+  - `description` — supporting copy
+  - `icon` — Lucide or Iconify icon name (e.g. `"zap"`, `"shield"`, `"settings"`)
+  - `href` — makes the entire tile a link
+  - `links` — per-tile inline link buttons rendered in `TileActions`
+</ParamField>
+
+Section heading and prose copy are passed through the default `<slot />`.
+
+## Storybook story
+
+```typescript
+// astro-app/src/components/blocks/features-1.stories.ts
+export const Default = {
+  args: {
+    links: [
+      { text: "Get Started", href: "#" },
+      { text: "Learn More", href: "#" }
+    ],
+    items: [
+      {
+        icon: "zap",
+        title: "Lightning Fast",
+        description: "Built for speed and performance.",
+        href: "#"
+      },
+      {
+        icon: "shield",
+        title: "Secure by Default",
+        description: "Enterprise-grade security built in.",
+        href: "#"
+      },
+      {
+        icon: "settings",
+        title: "Customizable",
+        description: "Tailor everything to your needs.",
+        href: "#"
+      }
+    ]
+  }
+}
+```
+
+Icons are resolved by the `@iconify/utils` package from the `@iconify-json/lucide` set. Any Lucide icon slug works as the `icon` value.
+
+## Component internals
+
+Internally, `features-1.astro` composes fulldev/ui primitives:
+
+```astro
+<Section>
+  <SectionContent>
+    <SectionProse><slot /></SectionProse>
+    <SectionActions>{/* links[] → Button variants */}</SectionActions>
+  </SectionContent>
+  <SectionGrid>
+    {items?.map(({ title, description, icon, links }) => (
+      <Tile>
+        <TileMedia variant="icon"><Icon name={icon} /></TileMedia>
+        <TileContent>
+          <TileTitle>{title}</TileTitle>
+          <TileDescription>{description}</TileDescription>
+        </TileContent>
+        <TileActions>{/* per-tile links[] */}</TileActions>
+      </Tile>
+    ))}
+  </SectionGrid>
+</Section>
+```
+
+## Installation
+
+```bash
+npx shadcn@latest add @fulldev/features-1
+```
+
+Repeat for each variant (`features-2` through `features-6`) as needed.
+
+<Note>
+All 6 features variants are pre-installed in the repo. Sanity schema wiring is tracked in Stories 2.4–2.8.
+</Note>

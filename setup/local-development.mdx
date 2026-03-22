@@ -1,0 +1,168 @@
+---
+title: "Local development"
+description: "All development commands for the YWCC Capstone monorepo, including dev servers, testing, and Storybook."
+---
+
+All commands below are run from the **repository root** unless otherwise noted. The root `package.json` uses npm workspaces to delegate workspace-specific scripts.
+
+## Development servers
+
+### Start all dev servers
+
+```bash
+npm run dev
+```
+
+Starts the Astro app and Sanity Studio concurrently using `concurrently --kill-others`. Either server exiting kills the other.
+
+| Server | URL | Description |
+|---|---|---|
+| Astro app | [http://localhost:4321](http://localhost:4321) | Frontend website with hot module replacement |
+| Sanity Studio | [http://localhost:3333](http://localhost:3333) | Headless CMS authoring interface |
+
+### Start with Storybook
+
+```bash
+npm run dev:storybook
+```
+
+Starts all three servers concurrently: Astro app, Sanity Studio, and Storybook.
+
+| Server | URL | Description |
+|---|---|---|
+| Astro app | [http://localhost:4321](http://localhost:4321) | Frontend website |
+| Sanity Studio | [http://localhost:3333](http://localhost:3333) | CMS authoring interface |
+| Storybook | [http://localhost:6006](http://localhost:6006) | Component development and visual testing |
+
+<Tip>Use `dev:storybook` when working on new UI components or block variants. Storybook provides hot reload and isolated rendering without needing a Sanity connection.</Tip>
+
+### Start Storybook alone
+
+```bash
+npm run storybook
+```
+
+Launches only Storybook on port 6006. Useful when you only need to work on components without running the full stack.
+
+### Preview production SSR build
+
+```bash
+npm run preview --workspace=astro-app
+```
+
+Builds the Astro app and serves it via `wrangler pages dev` on port 4321. This simulates the Cloudflare Pages SSR environment locally, including Cloudflare bindings (D1 database, KV, Durable Objects).
+
+<Note>The preview command requires Wrangler to be installed and authenticated. Run `npx wrangler login` if you haven't already.</Note>
+
+## Build commands
+
+### Production build
+
+```bash
+npm run build --workspace=astro-app
+```
+
+Builds the Astro app for production as static HTML into `astro-app/dist/`. Tailwind CSS is purged, and all Sanity content is baked into the output.
+
+### Deploy build to Cloudflare
+
+```bash
+npm run deploy --workspace=astro-app
+```
+
+Runs `astro build && wrangler pages deploy dist/`. Requires Wrangler authentication and appropriate Cloudflare Pages permissions.
+
+### Deploy Sanity Studio
+
+```bash
+npx sanity deploy --workspace=studio
+```
+
+Deploys the Studio to Sanity's hosted URL (e.g., `https://ywcccapstone.sanity.studio`).
+
+## Testing
+
+### Run all tests
+
+```bash
+npm run test
+```
+
+Runs Vitest unit tests followed by Playwright E2E tests. The E2E suite builds the Astro app first.
+
+### Unit tests (Vitest)
+
+```bash
+npm run test:unit          # Run once
+npm run test:unit:watch    # Watch mode — re-runs on file changes
+npm run test:unit:coverage # Run with V8 coverage report
+```
+
+Unit tests live in `astro-app/src/**/*.test.ts` and cover utilities, GROQ query helpers, mock data, and DOM scripts. Vitest uses jsdom for browser-like test execution.
+
+### E2E tests (Playwright)
+
+```bash
+npm run test:e2e           # Run all 5 browser projects
+npm run test:chromium      # Run Chromium only (fastest)
+npm run test:headed        # Run Chromium with browser window visible
+npm run test:ui            # Open Playwright UI mode
+```
+
+Playwright tests live in `tests/` and run across 5 device configurations. axe-core accessibility checks are included in every E2E run.
+
+<Note>E2E tests build the Astro app before running. The first run will be slower — subsequent runs reuse the cached build if no source files have changed.</Note>
+
+### Integration tests
+
+Integration tests run as a Playwright project (`test:integration`) without launching a browser. They validate schema imports and module resolution at build time — no network or browser required.
+
+## Code quality
+
+### TypeScript check
+
+```bash
+npm run check --workspace=astro-app
+```
+
+Runs `astro check` to type-check all `.astro`, `.ts`, and `.tsx` files.
+
+### Generate Sanity types
+
+```bash
+npm run typegen
+```
+
+Runs `sanity typegen generate` in the `studio` workspace to regenerate TypeScript types from the Sanity schema and GROQ queries. Run this after modifying any schema file or GROQ projection.
+
+## Command reference
+
+The full list of scripts from the root `package.json`:
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start Astro + Studio dev servers |
+| `npm run dev:storybook` | Start Astro + Studio + Storybook (all three) |
+| `npm run storybook` | Start Storybook alone (port 6006) |
+| `npm run build --workspace=astro-app` | Build Astro for production |
+| `npm run preview --workspace=astro-app` | Serve production build via Wrangler |
+| `npm run deploy --workspace=astro-app` | Build and deploy to Cloudflare Pages |
+| `npm run test` | Run unit tests + E2E tests |
+| `npm run test:unit` | Run Vitest unit tests |
+| `npm run test:unit:watch` | Unit tests in watch mode |
+| `npm run test:unit:coverage` | Unit tests with V8 coverage |
+| `npm run test:e2e` | Run Playwright E2E tests |
+| `npm run test:chromium` | E2E tests on Chromium only |
+| `npm run test:headed` | E2E tests with visible browser |
+| `npm run test:ui` | Playwright UI mode |
+| `npm run typegen` | Regenerate Sanity TypeScript types |
+| `npm run check --workspace=astro-app` | TypeScript type check |
+| `npm run deploy:rate-limiter` | Deploy the Cloudflare rate limiter Worker |
+
+## Port assignments
+
+| Port | Service |
+|---|---|
+| 4321 | Astro dev server and Wrangler Pages preview |
+| 3333 | Sanity Studio |
+| 6006 | Storybook |

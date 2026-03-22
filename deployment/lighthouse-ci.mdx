@@ -1,0 +1,136 @@
+---
+title: "Lighthouse CI"
+description: "Performance budget enforcement via Lighthouse CI on every PR to the preview branch."
+---
+
+Lighthouse CI runs automatically on every pull request to `preview`. It builds the Astro site, runs Lighthouse three times against the homepage and inner page, and reports results as a PR status check.
+
+## Configuration
+
+The full configuration is in `.lighthouserc.cjs` at the monorepo root:
+
+```javascript
+module.exports = {
+  ci: {
+    collect: {
+      staticDistDir: './astro-app/dist',
+      url: [
+        'http://localhost/index.html',
+        'http://localhost/home/index.html',
+      ],
+      numberOfRuns: 3,
+    },
+    upload: {
+      target: 'temporary-public-storage',
+    },
+  },
+};
+```
+
+| Option | Value | Purpose |
+|---|---|---|
+| `staticDistDir` | `./astro-app/dist` | Serves the built static output locally |
+| `url` | `index.html`, `home/index.html` | Pages audited on every run |
+| `numberOfRuns` | `3` | Averages 3 runs to reduce measurement variance |
+| `upload.target` | `temporary-public-storage` | Results uploaded to Lighthouse CI's temporary hosting for PR review |
+
+## When it runs
+
+Lighthouse CI is triggered by the `lighthouse` job in `.github/workflows/ci.yml`, which runs on every PR targeting `preview`:
+
+```yaml
+lighthouse:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+    - run: npm ci
+    - name: Build Astro site
+      run: npm run build --workspace=astro-app
+      env:
+        PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+        # ... other env vars
+    - name: Run Lighthouse CI
+      run: npx lhci autorun
+      continue-on-error: true
+      env:
+        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+```
+
+`continue-on-error: true` means a Lighthouse regression does not block a PR merge — it surfaces as a failing status check without preventing the merge. This allows the team to make informed decisions about performance trade-offs.
+
+## Performance budget
+
+The project targets the following Lighthouse scores:
+
+| Category | Target |
+|---|---|
+| Performance | **95+** |
+| Accessibility | **90+** |
+| Best Practices | 90+ |
+| SEO | 90+ |
+
+### Core Web Vitals targets
+
+| Metric | Target | How it's achieved |
+|---|---|---|
+| Cumulative Layout Shift (CLS) | **< 0.05** | Static HTML with known dimensions; no layout-shifting ads or embeds |
+| Total Blocking Time (TBT) | **~0ms** | No framework runtime on the client; Vanilla JS only |
+| Largest Contentful Paint (LCP) | Fast | Static HTML served from CDN edge; no hydration delay |
+
+### Asset budget
+
+| Asset | Budget | How it's enforced |
+|---|---|---|
+| JS payload | **< 5KB minified** | No React/Vue/Svelte runtime; vanilla JS handlers under 50 lines each |
+| CSS payload | **< 15KB after Tailwind purge** | Tailwind v4 CSS-first config; only used classes included |
+
+## Why 95+ performance is achievable
+
+The static-first architecture eliminates the main sources of performance overhead:
+
+<CardGroup cols={2}>
+  <Card title="No framework runtime" icon="ban">
+    Production pages ship zero React, Vue, or Svelte runtime JavaScript. All UI is rendered to static HTML at build time. The only JS is small vanilla event handlers (data-attribute driven, under 50 lines each).
+  </Card>
+  <Card title="CDN edge serving" icon="globe">
+    Cloudflare serves static HTML from the edge node closest to the visitor. No origin server round-trip for any public page.
+  </Card>
+  <Card title="Tailwind CSS purge" icon="scissors">
+    Tailwind v4's CSS-first config tree-shakes unused classes at build time. Only classes actually referenced in `.astro` components survive.
+  </Card>
+  <Card title="Static image dimensions" icon="image">
+    All images have explicit `width` and `height` attributes, eliminating layout shift (CLS). Sanity's image pipeline provides LQIP placeholders for above-the-fold images.
+  </Card>
+</CardGroup>
+
+## Reading Lighthouse results
+
+After CI runs, the Lighthouse job uploads results to temporary public storage and posts a link in the PR status checks. Click **Details** next to the Lighthouse check to open the full report.
+
+If you install the [Lighthouse CI GitHub App](https://github.com/apps/lighthouse-ci) and set `LHCI_GITHUB_APP_TOKEN` in the repository secrets, you get inline score annotations directly on the PR diff.
+
+## Running Lighthouse locally
+
+To run Lighthouse CI against a local build:
+
+```bash
+# Build the site first
+npm run build --workspace=astro-app
+
+# Run Lighthouse CI
+npx lhci autorun
+```
+
+Or use the Lighthouse CLI for a single-run audit:
+
+```bash
+# Serve the built site
+npx serve astro-app/dist -p 1234
+
+# In another terminal, run Lighthouse
+npx lighthouse http://localhost:1234 --view
+```

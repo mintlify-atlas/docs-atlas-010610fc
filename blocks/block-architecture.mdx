@@ -1,0 +1,177 @@
+---
+title: "Block architecture"
+description: "The flat-props interface pattern, filename-to-type mapping, auto-discovery, and the roles of BlockRenderer and BlockWrapper."
+---
+
+Every block — custom or template — follows a single consistent architecture. Understanding these four mechanics makes it straightforward to add, debug, or extend any block.
+
+## The flat-props interface pattern
+
+All block components declare their props by extending the generated TypeScript type for that block:
+
+```astro
+---
+// astro-app/src/components/blocks/custom/HeroBanner.astro
+import type { HeroBannerBlock } from '@/lib/types';
+import { Section, SectionContent, SectionActions } from '@/components/ui/section';
+import { Button } from '@/components/ui/button';
+
+interface Props extends HeroBannerBlock {
+  class?: string;
+  id?: string;
+}
+
+const { heading, subheading, ctaButtons, backgroundImages, alignment, variant: rawVariant } = Astro.props;
+---
+```
+
+You destructure fields **directly from `Astro.props`** — not from a nested `block` object. This is what "flat props" means: `heading`, not `block.heading`.
+
+<Note>
+  The types in `@/lib/types` are generated automatically by `npm run typegen` from the Sanity schema. Run typegen after any schema change to keep props in sync.
+</Note>
+
+## Filename → `_type` mapping
+
+The registry auto-discovers blocks by scanning two directories. The mapping rule depends on which directory the file lives in.
+
+### Custom blocks: PascalCase → camelCase
+
+Files in `blocks/custom/` use PascalCase filenames. The registry lowercases the first character to produce the `_type`:
+
+| Filename | `_type` |
+|---|---|
+| `HeroBanner.astro` | `heroBanner` |
+| `CtaBanner.astro` | `ctaBanner` |
+| `FaqSection.astro` | `faqSection` |
+| `SponsorCards.astro` | `sponsorCards` |
+| `LogoCloud.astro` | `logoCloud` |
+
+The `_type` must match the `name` field in the corresponding Sanity schema definition exactly.
+
+### Template blocks: kebab-case used directly
+
+Files in `blocks/` use kebab-case filenames. The registry uses the filename as-is:
+
+| Filename | `_type` |
+|---|---|
+| `hero-1.astro` | `hero-1` |
+| `features-3.astro` | `features-3` |
+| `cta-2.astro` | `cta-2` |
+
+## Auto-discovery via `import.meta.glob`
+
+The block registry uses Vite's `import.meta.glob` to scan both directories at build time. You do not register blocks manually anywhere:
+
+```typescript
+// astro-app/src/components/block-registry.ts
+const customModules = import.meta.glob('./blocks/custom/*.astro', { eager: true });
+for (const [path, mod] of Object.entries(customModules)) {
+  const filename = path.split('/').pop()!.replace('.astro', '');
+  const typeName = filename[0].toLowerCase() + filename.slice(1);
+  allBlocks[typeName] = (mod as { default: AstroComponentFactory }).default;
+}
+
+const uiModules = import.meta.glob('./blocks/*.astro', { eager: true });
+for (const [path, mod] of Object.entries(uiModules)) {
+  const name = path.split('/').pop()!.replace('.astro', '');
+  allBlocks[name] = (mod as { default: AstroComponentFactory }).default;
+}
+```
+
+Create the file, and it's in the registry. Delete the file, and it's gone. No switch statements, no import lists to maintain.
+
+## `BlockRenderer`: the dispatch layer
+
+`BlockRenderer.astro` receives the page's `blocks[]` array and renders each one:
+
+```astro
+---
+// astro-app/src/components/BlockRenderer.astro (simplified)
+import { allBlocks } from './block-registry';
+import BlockWrapper from './BlockWrapper.astro';
+
+interface Props {
+  blocks: PageBlock[];
+  sponsors?: Sponsor[];
+  projects?: Project[];
+  testimonials?: Testimonial[];
+  events?: SanityEvent[];
+}
+---
+
+{blocks.map((block) => {
+  const Component = allBlocks[block._type];
+  if (!Component) return null;
+  const extraProps = getBlockExtraProps(block);
+  return (
+    <BlockWrapper
+      backgroundVariant={block.backgroundVariant}
+      spacing={block.spacing}
+      maxWidth={block.maxWidth}
+      blockType={block._type}
+    >
+      <Component {...block} {...extraProps} />
+    </BlockWrapper>
+  );
+})}
+```
+
+Key points:
+
+- `allBlocks[block._type]` resolves the component. If no component matches, the block is silently skipped.
+- `getBlockExtraProps` injects resolved document references (sponsors, projects, testimonials, events) for blocks that need them.
+- Props are spread directly: `<Component {...block} {...extraProps} />`. The component receives all Sanity fields as top-level props.
+
+## `BlockWrapper`: the layout shell
+
+`BlockWrapper.astro` wraps every block with layout context derived from three base fields present on every block schema:
+
+```astro
+---
+// astro-app/src/components/BlockWrapper.astro
+import { stegaClean } from '@sanity/client/stega';
+
+interface Props {
+  backgroundVariant?: string | null;  // 'white' | 'light' | 'dark' | 'primary'
+  spacing?: string | null;            // 'none' | 'small' | 'default' | 'large'
+  maxWidth?: string | null;           // 'narrow' | 'default' | 'full'
+  blockType?: string;
+}
+
+const { backgroundVariant, spacing, maxWidth, blockType } = Astro.props;
+
+const bg = stegaClean(backgroundVariant) ?? 'white';
+const sp = stegaClean(spacing) ?? 'default';
+const mw = stegaClean(maxWidth) ?? 'default';
+---
+
+<div
+  class:list={[bgClasses[bg], spacingClasses[sp], maxWidthClasses[mw]]}
+  data-gtm-section={blockType}
+>
+  <slot />
+</div>
+```
+
+The `stegaClean` call strips Visual Editing stega metadata from string values so CSS class lookups work correctly in the preview branch.
+
+The `data-gtm-section` attribute enables Google Tag Manager to attribute user interactions to the correct block type without additional JS.
+
+### Base fields injected by `defineBlock`
+
+These three fields are added automatically to every block schema by the `defineBlock` helper — block authors never declare them manually:
+
+| Field | Values | Default |
+|---|---|---|
+| `backgroundVariant` | `white`, `light`, `dark`, `primary` | `white` |
+| `spacing` | `none`, `small`, `default`, `large` | `default` |
+| `maxWidth` | `narrow`, `default`, `full` | `default` |
+
+## Flat array only
+
+Blocks are a flat array on the page document. There are no nested blocks. A block can contain **objects** (e.g., an array of `statItem` objects inside `StatsRow`), but those objects are not themselves blocks registered in the registry.
+
+<Tip>
+  When you need a repeating list inside a block — stat cards, FAQ items, step cards — define a shared object schema and add an `array` field to the block. The items are part of the block's data, not separate blocks.
+</Tip>

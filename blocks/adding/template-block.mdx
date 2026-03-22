@@ -1,0 +1,263 @@
+---
+title: "Wiring a template block to Sanity"
+description: "Connect an existing fulldev/ui template block to Sanity CMS by adding a schema, GROQ projection, and type registration. No .astro changes required."
+---
+
+Use this path when an existing fulldev/ui block in `blocks/` already has the layout you want and you need to make it editable through Sanity Studio. The `.astro` component file stays completely unchanged — you only add the data pipeline.
+
+For building an entirely new block with custom rendering, see [Adding a custom block](/blocks/adding/custom-block).
+
+## The adapter pattern
+
+fulldev/ui template blocks define their own `Props` interface. Sanity stores structured content. The GROQ projection acts as the adapter layer that reshapes Sanity output into the flat props the component expects:
+
+```
+Sanity Schema (structured) → GROQ Projection (adapter) → Component Props (flat)
+```
+
+For example, a template block may expect:
+
+```typescript
+interface Props {
+  links?: { text?: string; href?: string; icon?: string; target?: string }[]
+  image?: { src: string; alt: string }
+}
+```
+
+Your GROQ projection maps Sanity's content model to that exact shape:
+
+```groq
+_type == 'hero-1' => {
+  _type,
+  _key,
+  backgroundVariant,
+  spacing,
+  maxWidth,
+  links[] {
+    text,
+    href,
+    icon,
+    target,
+  },
+  "image": image {
+    "src": asset->url,
+    "alt": alt,
+  },
+}
+```
+
+<Note>
+  The template block's `Props` interface is the contract you must satisfy. Read the component file first to understand every prop shape before writing the schema.
+</Note>
+
+## Files touched per block
+
+Wiring a template block requires changes to exactly **4 files**. No `.astro` file is modified.
+
+| File | What you add |
+|---|---|
+| `studio/src/schemaTypes/blocks/your-block.ts` | New schema file — maps component props to Sanity field types |
+| `studio/src/schemaTypes/index.ts` | Import and register the new schema |
+| `studio/src/schemaTypes/documents/page.ts` | Add `{ type: 'your-block' }` to the `blocks[]` array |
+| `astro-app/src/lib/sanity.ts` | Add the GROQ projection fragment |
+
+## Steps
+
+<Steps>
+  <Step title="Read the component's Props interface">
+    Open the template block file to understand exactly what shape of data it expects. For example, `hero-1.astro`:
+
+    ```astro
+    ---
+    // astro-app/src/components/blocks/hero-1.astro
+    interface Props {
+      class?: string
+      id?: string
+      link?: {
+        text?: string
+        href?: string
+        icon?: string
+        target?: string
+      }
+      links?: {
+        text?: string
+        href?: string
+        icon?: string
+        target?: string
+      }[]
+      image?: {
+        src: string
+        alt: string
+      }
+    }
+    ---
+    ```
+
+    Map each prop to a Sanity field type. Nested objects become object fields. Arrays become array fields. Image `src` strings typically come from `asset->url` in GROQ.
+  </Step>
+
+  <Step title="Create the Sanity schema">
+    Create `studio/src/schemaTypes/blocks/hero-1.ts` (use the kebab-case name matching the filename). Because this is a template block — not a custom block — you can use `defineType` directly rather than `defineBlock`, though `defineBlock` also works and gives you the base layout fields automatically.
+
+    ```typescript
+    // studio/src/schemaTypes/blocks/hero-1.ts
+    import { defineType, defineField, defineArrayMember } from 'sanity'
+
+    export const hero1 = defineType({
+      name: 'hero-1',          // must match the filename exactly (kebab-case)
+      title: 'Hero 1',
+      type: 'object',
+      fields: [
+        defineField({
+          name: 'link',
+          title: 'Badge Link',
+          type: 'object',
+          fields: [
+            defineField({ name: 'text', title: 'Text', type: 'string' }),
+            defineField({ name: 'href', title: 'URL', type: 'url' }),
+            defineField({ name: 'icon', title: 'Icon name', type: 'string' }),
+            defineField({ name: 'target', title: 'Target', type: 'string' }),
+          ],
+        }),
+        defineField({
+          name: 'links',
+          title: 'CTA Links',
+          type: 'array',
+          of: [
+            defineArrayMember({
+              type: 'object',
+              fields: [
+                defineField({ name: 'text', title: 'Text', type: 'string' }),
+                defineField({ name: 'href', title: 'URL', type: 'url' }),
+                defineField({ name: 'icon', title: 'Icon name', type: 'string' }),
+                defineField({ name: 'target', title: 'Target', type: 'string' }),
+              ],
+            }),
+          ],
+        }),
+        defineField({
+          name: 'image',
+          title: 'Image',
+          type: 'image',
+          options: { hotspot: true },
+          fields: [
+            defineField({ name: 'alt', title: 'Alt text', type: 'string',
+              validation: (Rule) => Rule.required() }),
+          ],
+        }),
+      ],
+    })
+    ```
+  </Step>
+
+  <Step title="Register the schema in index.ts and page schema">
+    In `studio/src/schemaTypes/index.ts`:
+
+    ```typescript
+    import { hero1 } from './blocks/hero-1'
+
+    export const schemaTypes: SchemaTypeDefinition[] = [
+      // ...
+      hero1,
+    ]
+    ```
+
+    In the page schema (`studio/src/schemaTypes/documents/page.ts`), add to the `blocks[]` array:
+
+    ```typescript
+    defineArrayMember({ type: 'hero-1' })
+    ```
+  </Step>
+
+  <Step title="Add the GROQ projection and run typegen">
+    Open `astro-app/src/lib/sanity.ts` and add a projection fragment for the new block type inside the `blocks[]` projection. The projection must output fields that match the component's `Props` interface exactly.
+
+    ```typescript
+    // Inside the blocks[] array projection in your page GROQ query
+    _type == 'hero-1' => {
+      _type,
+      _key,
+      link {
+        text,
+        href,
+        icon,
+        target,
+      },
+      links[] {
+        text,
+        href,
+        icon,
+        target,
+      },
+      "image": image {
+        "src": asset->url,
+        "alt": alt,
+      },
+    },
+    ```
+
+    Run typegen to generate TypeScript types for the new block:
+
+    ```bash
+    npm run typegen
+    ```
+
+    Verify the block renders in local dev:
+
+    ```bash
+    npm run dev
+    ```
+
+    Add the block to a test page in Sanity Studio (`http://localhost:3333`) and confirm the fields appear and the rendered output matches the Storybook story for that block.
+  </Step>
+</Steps>
+
+## Common patterns
+
+### Images
+
+Template blocks typically expect `{ src: string; alt: string }`. Dereference the asset in GROQ:
+
+```groq
+"image": image {
+  "src": asset->url,
+  "alt": alt,
+}
+```
+
+For responsive images with width/height, use `asset->{ url, metadata { dimensions } }` and extract `width` and `height` from `dimensions`.
+
+### Nested arrays of objects
+
+When a prop is `links?: { text?: string; href?: string }[]`, the GROQ projection must preserve the array:
+
+```groq
+links[] {
+  text,
+  href,
+  icon,
+  target,
+}
+```
+
+### Portable Text
+
+If a custom template block's slot is populated by Portable Text (rare for template blocks), project it as an array and use `@portabletext/astro` to render it.
+
+### Icon names
+
+fulldev/ui components use `@iconify/utils` icon names (e.g., `lucide:arrow-right`). Store these as `string` fields in Sanity — editors type the icon name directly, or you provide a predefined list.
+
+## Relationship to the block registry
+
+The template block's `.astro` file is already in `blocks/` and is already registered in `allBlocks` with its kebab-case name as the key. The registry requires no changes.
+
+After you add the Sanity schema, the block type name (e.g., `hero-1`) will match the key already in `allBlocks['hero-1']`. Blocks stored in Sanity with `_type: 'hero-1'` will dispatch to the correct component automatically.
+
+<Warning>
+  The `name` in your Sanity schema must exactly match the `.astro` filename (without extension). `hero-1.ts` schema with `name: 'hero-1'` maps to `hero-1.astro`. A mismatch causes silent block skipping — `BlockRenderer` receives `undefined` from `allBlocks[block._type]` and renders nothing.
+</Warning>
+
+## Full reference
+
+For patterns covering all Sanity field types, image handling, nested arrays, Portable Text, and more, see the [fulldev/ui to Sanity Conversion Guide](https://github.com/gsinghjay/astro-shadcn-sanity/blob/main/docs/team/fulldev-ui-to-sanity-conversion-guide.md) in the repository.

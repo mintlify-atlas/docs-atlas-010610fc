@@ -1,0 +1,145 @@
+---
+title: "Deploying Sanity Studio"
+description: "Deploy Sanity Studio to Sanity's CDN and Storybook to GitHub Pages via GitHub Actions."
+---
+
+The monorepo contains two independently deployed frontend artifacts: **Sanity Studio** (CMS interface for content editors) and **Storybook** (component library for developers). Each has its own deployment target.
+
+## Sanity Studio
+
+Sanity Studio lives in the `studio/` workspace and is deployed to **Sanity's managed CDN** — a globally distributed hosting service included with every Sanity project.
+
+### Deploy
+
+```bash
+npx sanity deploy --workspace=studio
+```
+
+This command:
+1. Builds the Studio for production
+2. Uploads the static bundle to Sanity's CDN
+3. Makes it available at `https://<project-id>.sanity.studio/`
+
+<Note>
+  The `--workspace=studio` flag targets the `studio` npm workspace. Run this from the monorepo root.
+</Note>
+
+### When to redeploy
+
+Redeploy the Studio when you:
+
+- Add or modify schema types in `studio/src/schemaTypes/`
+- Update Studio configuration in `studio/sanity.config.ts`
+- Change the Presentation (Visual Editing) tool setup
+- Update the Studio version (`@sanity/...` packages)
+
+Schema changes require `npx sanity schema deploy` first (to push to Sanity's Content Lake), then `npx sanity deploy --workspace=studio` to update the hosted Studio UI.
+
+### Studio URL
+
+The deployed Studio URL is set as `PUBLIC_SANITY_STUDIO_URL` in the Cloudflare Pages environment variables. The Astro app uses this URL to configure Visual Editing overlays.
+
+### Schema deployment
+
+Always deploy the schema before deploying the Studio:
+
+```bash
+# 1. Deploy schema to Sanity Content Lake
+npx sanity schema deploy
+
+# 2. Generate TypeScript types
+npm run typegen
+
+# 3. Deploy Studio UI to Sanity CDN
+npx sanity deploy --workspace=studio
+```
+
+<Warning>
+  Skipping `schema deploy` can cause mismatches between the Studio UI and the Content Lake schema. Content editors may see validation errors for fields that haven't been registered.
+</Warning>
+
+## Storybook → GitHub Pages
+
+Storybook is deployed to **GitHub Pages** at `https://gsinghjay.github.io/astro-shadcn-sanity/`. It serves as the living component library — every fulldev/ui block variant has a story with demo data.
+
+### Automatic deployment
+
+The `.github/workflows/deploy-storybook.yml` workflow deploys Storybook automatically on every push to `main` that touches component files:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'astro-app/src/**'
+      - 'astro-app/.storybook/**'
+      - 'astro-app/package.json'
+  workflow_dispatch:
+```
+
+The `paths` filter prevents unnecessary Storybook builds when only non-component files change (e.g., `studio/` changes, docs updates).
+
+### Manual trigger
+
+You can also trigger a Storybook deployment manually from the **Actions** tab on GitHub:
+
+1. Go to **Actions** → **Deploy Storybook to GitHub Pages**
+2. Click **Run workflow** → select `main` → **Run workflow**
+
+### How the workflow runs
+
+```yaml
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build-storybook --workspace=astro-app
+        env:
+          STORYBOOK_BASE_PATH: /astro-shadcn-sanity/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: astro-app/storybook-static
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+The `STORYBOOK_BASE_PATH` environment variable is set to `/astro-shadcn-sanity/` so the static bundle uses the correct base URL for GitHub Pages.
+
+### Required permissions
+
+The workflow requires these GitHub Actions permissions on the repository:
+
+```yaml
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+```
+
+Enable GitHub Pages in the repository settings (**Settings → Pages → Source: GitHub Actions**) if not already configured.
+
+### Build output
+
+The `build-storybook` command outputs to `astro-app/storybook-static/`. This directory is uploaded as the Pages artifact and deployed to GitHub Pages.
+
+### Concurrency
+
+The workflow uses a `pages` concurrency group:
+
+```yaml
+concurrency:
+  group: pages
+  cancel-in-progress: false
+```
+
+`cancel-in-progress: false` ensures in-flight deployments complete before a new one starts, preventing partial updates to GitHub Pages.

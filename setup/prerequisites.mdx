@@ -1,0 +1,87 @@
+---
+title: "Prerequisites"
+description: "Everything you need installed and configured before cloning the YWCC Capstone repository."
+---
+
+Before you start, make sure you have the following tools installed and accounts created. Each item below is required to run the project locally and contribute.
+
+## Runtime and package manager
+
+### Node.js v24+
+
+The project requires **Node.js v24 or later**. Check your version:
+
+```bash
+node --version
+```
+
+If you need to install or upgrade Node.js, use the [official installer](https://nodejs.org/) or a version manager like [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm).
+
+```bash
+# Using nvm
+nvm install 24
+nvm use 24
+```
+
+### npm v10+
+
+npm v10 or later is required for workspace support. npm ships with Node.js — upgrading Node.js typically satisfies this requirement. Check your version:
+
+```bash
+npm --version
+```
+
+<Note>The project uses **npm workspaces** to manage the `astro-app` and `studio` packages from a single root. Do not use Yarn or pnpm — workspace scripts in `package.json` are npm-specific.</Note>
+
+## Accounts
+
+### Sanity.io account
+
+Sanity is the headless CMS that powers all content. You need a Sanity account and a project to run the Studio and query content.
+
+1. Create a free account at [sanity.io](https://www.sanity.io/).
+2. Create a new project (or use an existing one).
+3. Note your **Project ID** — you'll need it for your `.env` file.
+
+<Tip>Sanity's free tier includes 2 projects, unlimited editors, 10GB bandwidth, and 500k API requests per month. This project is designed to stay within free tier limits.</Tip>
+
+### GitHub account
+
+A GitHub account is required to clone the repository and contribute via pull requests.
+
+- Create a free account at [github.com](https://github.com/).
+- Configure SSH keys for cloning via SSH: [GitHub SSH key guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
+
+<Note>The Sanity Studio sign-in supports GitHub as an OAuth provider. Using the same GitHub account for both Sanity and GitHub simplifies authentication during local development.</Note>
+
+### Cloudflare account
+
+Cloudflare Pages hosts the production site and the form-submission Worker. You need a Cloudflare account for deployment.
+
+- Create a free account at [cloudflare.com](https://www.cloudflare.com/).
+- The project uses Cloudflare Pages, Workers, D1 (database), and KV (session cache).
+
+<Tip>All services used by this project are available on Cloudflare's free tier. The Cloudflare account is not required for local development — only for deployment.</Tip>
+
+## Optional tools
+
+These tools are not required to run the app locally but are used in the development workflow:
+
+| Tool | Purpose | Install |
+|---|---|---|
+| [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) | Preview SSR builds and deploy Workers | `npm install -g wrangler` |
+| [Sanity CLI](https://www.sanity.io/docs/cli) | Deploy Studio, run TypeGen | `npm install -g sanity` |
+| [GitHub CLI](https://cli.github.com/) | Create PRs from the command line | [Download](https://cli.github.com/) |
+| [Playwright browsers](https://playwright.dev/) | Run E2E tests | `npx playwright install` |
+
+## Check your setup
+
+Once everything is installed, verify your environment:
+
+```bash
+node --version   # should print v24.x.x or later
+npm --version    # should print v10.x.x or later
+git --version    # should print git version 2.x.x
+```
+
+When all three commands succeed, proceed to the [Quickstart](/quickstart).

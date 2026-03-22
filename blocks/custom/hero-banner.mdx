@@ -1,0 +1,116 @@
+---
+title: "Hero Banner"
+description: "Full-width page hero with heading, subheading, CTA buttons, and optional image carousel background."
+---
+
+The `HeroBanner` block is the primary page-entry component. It renders a large-format hero section with a required heading, optional subheading, CTA buttons, and up to six layout variants that control whether background images appear as a carousel, a side panel, or an edge-bleed split.
+
+<Note>
+  `heading` is the only required field. All other props are optional and the block renders gracefully without them.
+</Note>
+
+## Props
+
+<ParamField path="heading" type="string" required>
+  Main hero heading. Rendered as an `<h1>` with bold, tightly-tracked type at `5xl`–`8xl` depending on the variant. Validated as required in Sanity Studio.
+</ParamField>
+
+<ParamField path="subheading" type="string">
+  A supporting sentence below the heading. Rendered at `lg`–`xl` with relaxed line height. Constrained to `max-w-2xl` in most variants.
+</ParamField>
+
+<ParamField path="backgroundImages" type="SanityImageObject[]">
+  Array of Sanity image objects with hotspot support. Used as an auto-advancing carousel in the `centered` and `overlay` variants; only the first image is used in `split`, `split-asymmetric`, `split-bleed`, and `spread`. Each image requires an `alt` string.
+</ParamField>
+
+<ParamField path="ctaButtons" type="Button[]">
+  Array of button objects. The first button always renders as `variant="default"`; subsequent buttons render as `outline` by default or whatever `variant` is set on the individual button object.
+</ParamField>
+
+<ParamField path="alignment" type="'left' | 'center' | 'right'">
+  Controls text alignment within the content area. Defaults to `center`. Hidden in Studio when the variant is `split`, `split-asymmetric`, or `spread` (those layouts fix alignment by design).
+</ParamField>
+
+<ParamField path="variant" type="'centered' | 'split' | 'split-asymmetric' | 'overlay' | 'spread' | 'split-bleed'">
+  Layout variant. Defaults to `centered`. See [Variants](#variants--options) below for a full description of each.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Global background colour token applied via the shared block base. Defaults to `white`. The block itself always uses `bg-foreground text-background`; this field primarily affects adjacent section spacing.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes passed from the page builder renderer.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` attribute for anchor-link targeting.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Open **Pages** and edit or create a page.
+2. In the **Blocks** array, click **Add item** and choose **Hero Banner**.
+3. Fill in **Heading** (required) and optionally **Subheading**.
+4. Add one or more **Background Images** — each image requires alt text.
+5. Add up to two **CTA Buttons** (text, URL, and optional variant).
+6. Expand **Layout Options** to choose a **Variant** and set **Alignment**.
+
+<Tip>
+  Upload multiple background images to activate the auto-advancing carousel in the `centered` and `overlay` variants. Carousel dot navigation appears on hover.
+</Tip>
+
+## Variants / Options
+
+| Variant | Description |
+|---|---|
+| `centered` | Full-width dark section. Background images cycle as a carousel with a semi-transparent glass card over the text. |
+| `overlay` | Same carousel as `centered` but text renders directly over the dark overlay — no glass card. |
+| `split` | 50/50 grid. Text and buttons on the left; first image fills the right panel at `960×1080`. |
+| `split-asymmetric` | `2fr:3fr` grid. Compact text column left; larger image right at `1200×1080`. |
+| `split-bleed` | `1fr:3fr` grid. Text left; image bleeds to the right viewport edge (no right padding). |
+| `spread` | Heading and subheading on the left; CTA buttons pinned to the right; first image as a full-width background with `60%` dark overlay. |
+
+### Button fields
+
+Each item in `ctaButtons` is a `button` object:
+
+```typescript
+{
+  text: string;          // required — button label
+  url: string;           // required — relative path or absolute URL
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost';
+}
+```
+
+## Example
+
+```typescript
+// Example Sanity document block shape
+{
+  _type: 'heroBanner',
+  heading: 'Launch Your Engineering Career',
+  subheading: 'Connect with 50+ industry sponsors seeking YWCC talent.',
+  variant: 'split-bleed',
+  alignment: 'left',
+  backgroundImages: [
+    { asset: { _ref: 'image-abc123' }, alt: 'Students collaborating in lab' }
+  ],
+  ctaButtons: [
+    { text: 'View Sponsors',  url: '/sponsors',  variant: 'default' },
+    { text: 'Learn More',     url: '/about',     variant: 'outline' }
+  ]
+}
+```
+
+<Note>
+  The block emits `data-gtm-category="cta"` and `data-gtm-label` attributes on every button for Google Tag Manager click tracking. No additional configuration is required.
+</Note>

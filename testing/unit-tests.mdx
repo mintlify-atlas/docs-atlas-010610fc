@@ -1,0 +1,163 @@
+---
+title: "Unit tests"
+description: "Vitest unit tests for utilities, GROQ query helpers, mock data validation, and client-side DOM scripts."
+---
+
+Unit tests use [Vitest](https://vitest.dev/) with a jsdom environment. They test pure TypeScript and client-side DOM code in isolation — no browser launch, no Sanity API calls, no Astro build required.
+
+## Running unit tests
+
+```bash
+# Run all unit tests once
+npm run test:unit
+
+# Watch mode — reruns on file changes (use during development)
+npm run test:unit:watch
+
+# Generate a coverage report
+npm run test:unit:coverage
+```
+
+Coverage reports output to `test-results/unit-coverage/` (HTML + lcov) and JUnit XML to `test-results/unit-results.xml`.
+
+## What's tested
+
+| File | What it covers |
+|---|---|
+| `src/lib/__tests__/utils.test.ts` | `cn()` Tailwind class merge utility |
+| `src/lib/__tests__/sanity.test.ts` | Sanity query helpers and fetch wrapper |
+| `src/lib/__tests__/data.test.ts` | Mock data structure validation |
+| `src/scripts/__tests__/main.test.ts` | Client-side DOM event delegation scripts |
+| `src/__tests__/middleware.test.ts` | Unified auth routing middleware |
+
+Coverage is collected from `src/lib/**/*.ts` and `src/scripts/**/*.ts` only. Test files, type declarations, and mock data directories are excluded.
+
+## File locations
+
+```text
+astro-app/
+├── vitest.config.ts                      # Vitest configuration
+└── src/
+    ├── lib/
+    │   └── __tests__/
+    │       ├── __mocks__/
+    │       │   └── sanity-client.ts       # Fake Sanity client
+    │       ├── utils.test.ts
+    │       ├── sanity.test.ts
+    │       └── data.test.ts
+    ├── scripts/
+    │   └── __tests__/
+    │       └── main.test.ts               # jsdom DOM script tests
+    └── __tests__/
+        └── middleware.test.ts             # Auth middleware tests
+```
+
+Vitest also picks up integration tests from `tests/integration/**/*.test.ts` via the include glob in `vitest.config.ts`.
+
+## vitest.config.ts
+
+```typescript
+/// <reference types="vitest" />
+import { getViteConfig } from "astro/config";
+import { resolve } from "path";
+
+export default getViteConfig({
+  resolve: {
+    alias: {
+      // Mock Astro virtual modules that can't resolve outside Astro build
+      "sanity:client": resolve(
+        import.meta.dirname,
+        "./src/lib/__tests__/__mocks__/sanity-client.ts",
+      ),
+    },
+  },
+  test: {
+    globals: true,
+    include: [
+      "src/**/__tests__/**/*.test.ts",
+      "../tests/integration/**/*.test.ts",
+    ],
+    exclude: ["node_modules", "dist", ".astro"],
+    coverage: {
+      provider: "v8",
+      include: ["src/lib/**/*.ts", "src/scripts/**/*.ts"],
+      exclude: ["src/lib/__tests__/**", "src/lib/data/**", "src/**/*.d.ts"],
+      reporter: ["text", "html", "lcov"],
+      reportsDirectory: "../test-results/unit-coverage",
+    },
+    reporters: ["default", "junit"],
+    outputFile: {
+      junit: "../test-results/unit-results.xml",
+    },
+  },
+});
+```
+
+## Key patterns
+
+### sanity:client mock
+
+Vitest aliases the `sanity:client` virtual module (an Astro/Sanity internal) to a hand-written mock at `src/lib/__tests__/__mocks__/sanity-client.ts`. This allows GROQ query tests to run without a live Sanity project or network access.
+
+### jsdom environment
+
+DOM-dependent tests (client-side scripts, middleware cookie parsing) annotate with the jsdom environment pragma:
+
+```typescript
+// @vitest-environment jsdom
+import { describe, it, expect } from 'vitest'
+```
+
+### Path aliases
+
+`@/` resolves to `astro-app/src/` in test files, matching the same alias used in Astro's `tsconfig.json`:
+
+```typescript
+import { cn } from "@/lib/utils";
+```
+
+### Example: utility test
+
+```typescript
+// astro-app/src/lib/__tests__/utils.test.ts
+import { cn } from "@/lib/utils";
+
+it("resolves Tailwind conflicts", () => {
+  expect(cn("px-4", "px-8")).toBe("px-8");
+});
+
+it("merges conditional classes", () => {
+  expect(cn("text-sm", false && "text-lg", "font-bold")).toBe("text-sm font-bold");
+});
+```
+
+### Example: middleware test
+
+The middleware test file (`src/__tests__/middleware.test.ts`) covers the unified auth routing layer — public route pass-through, portal/student session validation, KV cache hits/misses, Durable Object rate limiting, and dev mode bypass:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { onRequest } from '../middleware';
+
+describe('Public routes', () => {
+  it('calls next() without auth for public route /about', async () => {
+    const ctx = createMockContext('/about');
+    await onRequest(ctx as any, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(mockGetSession).not.toHaveBeenCalled();
+  });
+});
+```
+
+<Tip>
+Run `npm run test:unit:watch` during development. Vitest re-runs only the affected test files on save, giving sub-second feedback.
+</Tip>
+
+## Dependencies
+
+| Package | Purpose |
+|---|---|
+| `vitest` | Vite-native test runner |
+| `jsdom` | DOM environment for client-side script tests |
+| `@vitest/coverage-v8` | V8-based code coverage provider |

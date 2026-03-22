@@ -1,0 +1,89 @@
+---
+title: "Testing overview"
+description: "Multi-layer test strategy covering unit, integration, E2E, accessibility, and performance across the Astro + Sanity monorepo."
+---
+
+The project uses a four-layer test strategy. Each layer targets a specific level of the stack and runs at a different speed/cost tradeoff. Unit tests run on every push; E2E and Lighthouse run on PRs to `preview`.
+
+## Test layers
+
+| Layer | Tool | Command | What it tests |
+|---|---|---|---|
+| Unit | Vitest | `npm run test:unit` | Utilities, GROQ queries, mock data, DOM scripts |
+| Integration | Playwright (no browser) | `npm run test:integration` | Schema validation, module imports |
+| E2E | Playwright (5 browsers) | `npm run test:e2e` | Full browser tests across 5 device configs |
+| Accessibility | axe-core via `@axe-core/playwright` | Included in E2E | WCAG 2.1 AA compliance |
+| Performance | Lighthouse CI | CI only (preview PRs) | Core Web Vitals, performance budgets |
+
+## Quick commands
+
+```bash
+# Unit tests
+npm run test:unit
+
+# Integration tests (schema/content validation, no browser)
+npm run test:integration
+
+# Full E2E suite (all 5 browser projects, builds first)
+npm run test:e2e
+
+# Run everything: unit then E2E
+npm test
+```
+
+## Test layers in detail
+
+<CardGroup cols={2}>
+  <Card title="Unit tests" icon="flask" href="/testing/unit-tests">
+    Vitest with jsdom. Tests utilities (`cn()`), GROQ query helpers, mock data validation, and client-side DOM scripts. Runs in milliseconds — no browser required.
+  </Card>
+  <Card title="Integration tests" icon="plug" href="/testing/e2e-tests">
+    Playwright without a browser launch. Validates schema structure, module imports, Storybook config, and story file conventions. Fast CI feedback.
+  </Card>
+  <Card title="End-to-end tests" icon="globe" href="/testing/e2e-tests">
+    Playwright across Chromium, Firefox, WebKit, Pixel 7 (mobile Chrome), and iPhone 14 (mobile Safari). Tests navigation, page rendering, SEO meta, and portal auth flows.
+  </Card>
+  <Card title="Accessibility tests" icon="eye" href="/testing/accessibility">
+    axe-core WCAG 2.1 AA audits run inside E2E tests. Every new page or block must include an `expectAccessible(page)` assertion.
+  </Card>
+  <Card title="Storybook" icon="book-open" href="/testing/storybook">
+    153 component stories for visual testing and component development in isolation. Deployed automatically to GitHub Pages on pushes to `main`.
+  </Card>
+  <Card title="Performance (Lighthouse CI)" icon="gauge" href="/testing/overview">
+    Lighthouse CI runs on PRs to `preview`. Enforces 95+ performance and 90+ accessibility scores. Targets: CLS &lt; 0.05, JS &lt; 5 KB, CSS &lt; 15 KB.
+  </Card>
+</CardGroup>
+
+## When tests run in CI
+
+The CI pipeline runs tests in this order:
+
+<Steps>
+  <Step title="Unit tests">
+    `npm run test:unit` runs on every push to every branch. Fast feedback — typically completes in under 10 seconds. Blocks merge if any test fails.
+  </Step>
+  <Step title="Integration tests">
+    `npm run test:integration` runs on every push. Validates schema structure, Storybook config, and module conventions without spinning up a browser.
+  </Step>
+  <Step title="E2E tests">
+    `npm run test:e2e` runs on PRs to `preview`. Builds the Astro site first, then runs all 5 browser projects. Uses `workers: 1` for stability in CI. Screenshots, videos, and traces are uploaded as artifacts on failure.
+  </Step>
+  <Step title="Lighthouse CI">
+    Runs on PRs to `preview` after E2E. Asserts performance ≥ 95, accessibility ≥ 90, CLS &lt; 0.05. Results post as a PR comment.
+  </Step>
+</Steps>
+
+## Test results and artifacts
+
+| Artifact | Location |
+|---|---|
+| Unit test JUnit XML | `test-results/unit-results.xml` |
+| Unit coverage report | `test-results/unit-coverage/` |
+| E2E JUnit XML | `test-results/results.xml` |
+| E2E HTML report | `playwright-report/` |
+| Screenshots (failure only) | `test-results/` |
+| Videos (failure only) | `test-results/` |
+
+<Note>
+Run `npx playwright install --with-deps` once after cloning to install the required browser binaries before running any E2E or integration tests.
+</Note>

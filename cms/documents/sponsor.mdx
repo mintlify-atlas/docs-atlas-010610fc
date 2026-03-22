@@ -1,0 +1,82 @@
+---
+title: "Sponsor document"
+description: "Schema fields for the sponsor document type, which represents an industry partner on the Capstone site."
+---
+
+The `sponsor` document represents an industry partner. Sponsors appear in the `sponsorCards` and `logoCloud` page blocks, have dedicated detail pages at `/sponsors/[slug]`, and can access the sponsor portal after authentication.
+
+## Fields
+
+### Main group
+
+<ParamField path="name" type="string" required>
+  Company or organization name. Used as the display title in the Studio preview and as the source for auto-generating the slug.
+</ParamField>
+
+<ParamField path="slug" type="slug" required>
+  URL slug for the sponsor detail page (`/sponsors/[slug]`). Auto-generated from `name`. Used by `ALL_SPONSOR_SLUGS_QUERY` for static path generation.
+</ParamField>
+
+<ParamField path="site" type="string">
+  Multi-site discriminator. Hidden on the `production` (Capstone) dataset. Required on the `rwc` dataset.
+</ParamField>
+
+<ParamField path="logo" type="image" required>
+  Sponsor logo image with hotspot cropping enabled. Must include an `alt` field for accessibility. Rendered in `SponsorCard.astro`, `logoCloud`, and the sponsor detail page.
+</ParamField>
+
+<ParamField path="description" type="text">
+  Short description of the sponsor's business or mission. Displayed on the sponsor detail page and in the sponsor portal.
+</ParamField>
+
+<ParamField path="website" type="url">
+  Sponsor's public website URL. Linked from the sponsor detail page and sponsor cards.
+</ParamField>
+
+<ParamField path="contactEmail" type="string">
+  Primary email address for sponsor portal authentication. Sponsors who sign in with this email are redirected to their portal page. Validated as a valid email address.
+</ParamField>
+
+<ParamField path="allowedEmails" type="array of string">
+  Additional email addresses authorized to access this sponsor's portal. Each entry is validated as a valid email. Useful for team members of the same company.
+</ParamField>
+
+<ParamField path="industry" type="string">
+  Industry category (e.g. `Healthcare`, `FinTech`, `Cybersecurity`). Free-text field — not an enum. Displayed on the detail page and used in project associations.
+</ParamField>
+
+<ParamField path="tier" type="string">
+  Sponsorship tier. Controls display prominence in `sponsorCards` blocks.
+
+  | Value | Label |
+  |---|---|
+  | `platinum` | Platinum |
+  | `gold` | Gold |
+  | `silver` | Silver |
+  | `bronze` | Bronze |
+</ParamField>
+
+<ParamField path="hidden" type="boolean">
+  When `true`, excludes the sponsor from all public queries (`ALL_SPONSORS_QUERY` filters `hidden != true`) and from static path generation. Defaults to `false`. Use this to temporarily remove a sponsor without deleting the document.
+</ParamField>
+
+<ParamField path="featured" type="boolean">
+  When `true`, this sponsor appears when a `sponsorCards` block is set to **Featured** display mode. Defaults to `false`.
+</ParamField>
+
+### SEO group
+
+<ParamField path="seo" type="seo object">
+  Embedded SEO object with `metaTitle`, `metaDescription`, and `ogImage` for the sponsor detail page.
+</ParamField>
+
+## How sponsors appear in blocks
+
+Sponsors are fetched once per build via `getAllSponsors()` and cached in memory. The `resolveBlockSponsors()` helper in `sanity.ts` filters the cached array based on block configuration:
+
+- **`logoCloud` block**: if `autoPopulate` is `true`, all sponsors are shown; otherwise the editor's manual `sponsors` selection is used.
+- **`sponsorCards` block**: filtered by `displayMode` — `all`, `featured` (respects the `featured` flag), or `manual` (editor-selected list).
+
+<Note>
+  Sponsors marked `hidden: true` are excluded from `ALL_SPONSORS_QUERY`, so they never appear in any block regardless of selection mode.
+</Note>

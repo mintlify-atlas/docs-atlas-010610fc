@@ -1,0 +1,111 @@
+---
+title: "Schema types"
+description: "How Sanity schemas are organized into documents, blocks, objects, fields, and helpers in this project."
+---
+
+All schema definitions live under `studio/src/schemaTypes/`. The directory is organized by category:
+
+```
+studio/src/schemaTypes/
+├── documents/      # Top-level publishable content (page, sponsor, project, …)
+├── blocks/         # Page-builder block types (heroBanner, featureGrid, …)
+├── objects/        # Reusable embedded objects (seo, button, link, …)
+├── fields/         # Shared field definitions (site-field)
+└── helpers/        # Factory utilities (defineBlock)
+```
+
+## Schema categories
+
+<CardGroup cols={2}>
+  <Card title="Documents" icon="file">
+    First-class content items that live at the top level of the dataset. Each has `_id`, `_type`, and `_rev`. Documents are published and versioned independently.
+  </Card>
+  <Card title="Blocks" icon="layout-grid">
+    Object types used inside `page.blocks[]`. Created with the `defineBlock` helper — they inherit shared layout fields automatically.
+  </Card>
+  <Card title="Objects" icon="box">
+    Embedded sub-objects without their own document identity, for example `seo`, `button`, `link`, and `portableText`.
+  </Card>
+  <Card title="Fields" icon="text-cursor-input">
+    Shared `defineField` exports reused across multiple schemas. Currently only `siteField` — the multi-site routing discriminator.
+  </Card>
+</CardGroup>
+
+## The `defineBlock` helper
+
+Every page-builder block is created through `defineBlock`, defined in `studio/src/schemaTypes/helpers/defineBlock.ts`. It wraps Sanity's `defineType` and automatically prepends the shared **layout options fieldset** (`backgroundVariant`, `spacing`, `maxWidth`) to every block.
+
+```typescript
+// studio/src/schemaTypes/helpers/defineBlock.ts
+import {defineType, defineField} from 'sanity'
+import {blockBaseFields} from '../objects/block-base'
+
+export function defineBlock(config: DefineBlockConfig) {
+  return defineType({
+    name: config.name,
+    title: config.title,
+    type: 'object',
+    fieldsets: [
+      {name: 'layout', title: 'Layout Options', options: {collapsible: true, collapsed: true}},
+      ...(config.fieldsets ?? []),
+    ],
+    // blockBaseFields always prepended: backgroundVariant, spacing, maxWidth
+    fields: [...blockBaseFields, ...variantFields, ...blockFields],
+    // …preview, icon, components
+  })
+}
+```
+
+The `variants` option generates a `variant` radio field and wires `hiddenByVariant` so fields automatically hide/show when the editor switches variants — without writing custom `hidden` callbacks.
+
+### Block base fields
+
+Every block created with `defineBlock` inherits these layout controls in a collapsible **Layout Options** fieldset:
+
+| Field | Type | Options |
+|---|---|---|
+| `backgroundVariant` | string (radio) | `white`, `light`, `dark`, `primary` |
+| `spacing` | string (radio) | `none`, `small`, `default`, `large` |
+| `maxWidth` | string (radio) | `narrow`, `default`, `full` |
+
+## Schema registration in `index.ts`
+
+All types must be imported and added to the `schemaTypes` array in `studio/src/schemaTypes/index.ts` before Sanity will recognize them:
+
+```typescript
+export const schemaTypes: SchemaTypeDefinition[] = [
+  // Objects
+  seo, button, link, portableText, faqItem, featureItem, statItem, stepItem,
+  teamMember, galleryImage,
+  // Documents
+  page, siteSettings, sponsor, project, testimonial, event, submission,
+  // Blocks — homepage
+  heroBanner, featureGrid, ctaBanner, statsRow, textWithImage, logoCloud, sponsorSteps,
+  // Blocks — remaining
+  richText, faqSection, contactForm, sponsorCards, testimonials, eventList, projectCards,
+  // Blocks — content display
+  teamGrid, imageGallery, articleList,
+  // …and more
+]
+```
+
+The `createSchemaTypesForWorkspace(dataset)` utility in `workspace-utils.ts` post-processes this array to hide the `site` field on the `production` dataset, so Capstone editors never see multi-site controls.
+
+## TypeGen: generating TypeScript types
+
+Sanity TypeGen reads the registered schemas and running GROQ queries to produce fully-typed TypeScript interfaces. Run it after any schema or query change:
+
+```bash
+# From the astro-app directory
+npm run typegen
+```
+
+This command runs `sanity schema extract` followed by `sanity typegen generate` and writes the output to `astro-app/src/sanity.types.ts`. All query result types (e.g. `PAGE_BY_SLUG_QUERY_RESULT`, `ALL_SPONSORS_QUERY_RESULT`) come from this generated file.
+
+<Tip>
+  Enable automatic TypeGen in `sanity.cli.ts` by setting `typegen: { enabled: true }` to regenerate types on every `sanity dev` restart.
+</Tip>
+
+<Warning>
+  Always commit `sanity.types.ts` to source control. CI builds rely on it — the file is not regenerated at build time.
+</Warning>

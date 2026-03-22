@@ -1,0 +1,107 @@
+---
+title: "Visual Editing"
+description: "How the Sanity Presentation tool and stega encoding enable live overlay editing on the Astro front end."
+---
+
+Visual Editing lets editors click directly on text or images in the preview front end and jump to the correct field in Sanity Studio — without hunting through the document tree. Changes are reflected in the preview in near real-time via the Sanity Live Content API.
+
+## How it works
+
+<Steps>
+  <Step title="Enable the preview environment">
+    Set `PUBLIC_SANITY_VISUAL_EDITING_ENABLED=true` in the Astro app's environment variables. This switches `loadQuery()` to use the `drafts` perspective and enables stega encoding.
+  </Step>
+  <Step title="Open the Presentation tool in Studio">
+    Navigate to the **Presentation** plugin in your Sanity workspace. It loads the preview URL (`SANITY_STUDIO_PREVIEW_ORIGIN`) inside an iframe.
+  </Step>
+  <Step title="Click any editable element">
+    Stega-encoded strings in the rendered HTML carry invisible metadata that the `VisualEditing` overlay reads to map DOM elements back to their Sanity document fields. Clicking an element opens the correct field in the Studio panel.
+  </Step>
+  <Step title="Edit and see changes live">
+    Edits in Studio are streamed to the preview via the Live Content API. `SanityLiveUpdater` listens for matching sync tags and triggers a debounced page reload (500 ms).
+  </Step>
+</Steps>
+
+## Stega encoding
+
+When Visual Editing is active, `loadQuery()` passes `stega: true` to the Sanity client. This embeds invisible Unicode characters (zero-width sequences) into string values returned by GROQ queries. The `@sanity/visual-editing` overlay reads these characters to determine which document and field path each piece of text belongs to, enabling click-to-edit without any custom data attributes.
+
+Use `stegaClean()` from `@sanity/client/stega` when you need the raw string value — for example, when comparing a field value to a known constant or passing it to a non-rendering function:
+
+```typescript
+import { stegaClean } from '@sanity/client/stega'
+
+// Without stegaClean: displayMode may contain invisible stega characters
+const mode = stegaClean(block.displayMode) ?? 'all'
+```
+
+## `SanityLiveUpdater` component
+
+`astro-app/src/components/SanityLiveUpdater.astro` is an Astro island that subscribes to the Sanity Live Content API and reloads the page when content changes are detected.
+
+- In **static mode** (Visual Editing disabled): not rendered.
+- In **Visual Editing mode**: rendered in every page's `<Layout>`. Connects to the Live Content API using a server-injected read token and calls `window.location.reload()` after a 500 ms debounce when a matching sync tag event fires.
+
+The read token is injected server-side via `define:vars` to keep it out of client JS bundles:
+
+```astro
+{visualEditingEnabled && liveToken && (
+  <script define:vars={{ liveToken }}>
+    window.__SANITY_LIVE_TOKEN__ = liveToken;
+  </script>
+)}
+```
+
+## `VisualEditingMPA` React component
+
+`astro-app/src/components/VisualEditingMPA.tsx` wraps `@sanity/visual-editing/react`'s `<VisualEditing>` component and adds an MPA-compatible `HistoryAdapter`.
+
+The standard `@sanity/astro` `VisualEditing` component does not pass a history adapter, so Presentation Tool navigation events (when you click a document location in Studio) are silently dropped. `VisualEditingMPA` solves this by implementing `HistoryAdapter.update()` as a full-page `window.location.href` navigation:
+
+```tsx
+function createMPAHistoryAdapter(): HistoryAdapter {
+  return {
+    update(data: HistoryUpdate) {
+      // Full page navigation for MPA — the new page will re-mount VisualEditing
+      window.location.href = data.url
+    },
+    subscribe(navigate) {
+      navigate({ type: 'push', url: window.location.href, title: document.title })
+      const onPopState = () =>
+        navigate({ type: 'pop', url: window.location.href, title: document.title })
+      window.addEventListener('popstate', onPopState)
+      return () => window.removeEventListener('popstate', onPopState)
+    },
+  }
+}
+```
+
+## Enabling Visual Editing
+
+Visual Editing is controlled by the `PUBLIC_SANITY_VISUAL_EDITING_ENABLED` environment variable in the Astro app.
+
+| Variable | Value | Effect |
+|---|---|---|
+| `PUBLIC_SANITY_VISUAL_EDITING_ENABLED` | `true` | Enables draft perspective, stega encoding, live updates, and overlay |
+| `PUBLIC_SANITY_VISUAL_EDITING_ENABLED` | `false` (default) | Static build mode — queries use the published perspective |
+| `SANITY_API_READ_TOKEN` | your token | Required when Visual Editing is `true` |
+
+<Warning>
+  Never set `PUBLIC_SANITY_VISUAL_EDITING_ENABLED=true` in production. The read token is injected into the page HTML for the Live Content API subscription. Use it only in dedicated preview deployments.
+</Warning>
+
+## Visual Editing workflow
+
+When Visual Editing is enabled, `[...slug].astro` skips the static fetch path entirely and renders a `<SanityPageContent server:defer>` server island instead. The island fetches fresh draft data on every SSR request, so the Presentation tool always sees the latest unpublished changes.
+
+```astro
+{visualEditingEnabled ? (
+  <SanityPageContent server:defer slug={slug}>
+    <div slot="fallback">…loading skeleton…</div>
+  </SanityPageContent>
+) : (
+  <TemplateComponent>
+    <BlockRenderer blocks={page.blocks} sponsors={sponsors} … />
+  </TemplateComponent>
+)}
+```

@@ -1,0 +1,97 @@
+---
+title: "Contact Form"
+description: "Dynamic sponsor inquiry form with Cloudflare Turnstile bot protection and Astro Actions submission."
+---
+
+The `ContactForm` block renders a split-layout section with introductory copy on the left and a dynamic form on the right. Fields are driven by a referenced `form` document in Sanity, allowing editors to configure field types, labels, and choices without code changes. Submissions are processed by an Astro Action with server-side Zod validation and Cloudflare Turnstile bot protection.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional heading above the description. Rendered as `<h2>` at `3xl`–`4xl`.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Supporting copy shown below the heading in the left column.
+</ParamField>
+
+<ParamField path="successMessage" type="string">
+  Message displayed inside the form panel after a successful submission. Defaults to `"Thank you for your inquiry. We will get back to you shortly."` if not set.
+</ParamField>
+
+<ParamField path="form" type="FormDocument" required>
+  A reference to a `form` document. Required — Studio validates that a form is selected. The referenced document provides the field definitions, submit button label, and form ID used in the Astro Action.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token. Defaults to `white`.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+## Form Field Types
+
+The referenced `form` document defines fields using the `formField` object type. Each field maps to an `AutoForm` input via the following type mapping:
+
+| Sanity `type` | Rendered as |
+|---|---|
+| `text` | `<input type="text">` |
+| `email` | `<input type="email">` |
+| `tel` | `<input type="tel">` |
+| `number` | `<input type="number">` |
+| `textarea` | `<textarea rows={5}>` |
+| `select` | `<select>` with choice options |
+| `radio` | Radio group with choice options |
+| `checkbox` | `<input type="checkbox">` |
+
+## Usage in Sanity Studio
+
+1. First, create a **Form** document in the **Forms** section of the Studio sidebar. Define each field (label, type, name, required, placeholder, and choices for select/radio).
+2. Add a **Contact Form** block to a page.
+3. Set an optional **Heading** and **Description** for the left column copy.
+4. In the **Form** field, select the form document you created.
+5. Optionally set a custom **Success Message**.
+
+<Warning>
+  The `PUBLIC_TURNSTILE_SITE_KEY` environment variable must be set in the Astro app's `.env` for Cloudflare Turnstile to load. Without it the `data-sitekey` attribute will be empty and bot protection will not function.
+</Warning>
+
+## Submission Flow
+
+The form submission is handled entirely client-side via Astro Actions:
+
+1. Client-side validation runs first (required fields, email format).
+2. `actions.submitForm(formData)` is called — the hidden `form_id` field routes to the correct form record.
+3. The Cloudflare Turnstile token is included in the form data for server-side verification.
+4. On success, the form panel transitions to the success state (`data-form-state="success"`) and a GTM event `form_submit` is pushed to `window.dataLayer`.
+5. On error, field-level ARIA error attributes are applied and focus is moved to the first invalid field.
+
+## Variants / Options
+
+This block has no `variant` field. The layout is always `SectionSplit` — copy left, form right.
+
+## Example
+
+```typescript
+{
+  _type: 'contactForm',
+  heading: 'Partner With Us',
+  description: 'Tell us about your organisation and the type of project you have in mind.',
+  successMessage: 'Thank you! Our partnerships team will be in touch within two business days.',
+  form: { _ref: 'form-doc-id', _type: 'reference' }
+}
+```

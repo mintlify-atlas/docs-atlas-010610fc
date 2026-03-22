@@ -1,0 +1,124 @@
+---
+title: "Sponsor Steps"
+description: "Numbered process timeline showing how to become a sponsor, with optional bullet points and CTAs."
+---
+
+The `SponsorSteps` block renders an ordered series of steps explaining a process — most commonly how a company becomes a program sponsor. Each step has a title, optional description, and an optional bullet list with check icons. Steps are displayed in a connected horizontal timeline on wide screens and as a vertical stack on mobile.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>` inside a `SectionProse` container.
+</ParamField>
+
+<ParamField path="subheading" type="string">
+  Optional supporting sentence rendered as `<p>` below the heading.
+</ParamField>
+
+<ParamField path="items" type="StepItem[]" required>
+  Array of step objects. At least one step is required. Each step renders as a numbered tile with an icon badge.
+</ParamField>
+
+<ParamField path="ctaButtons" type="Button[]">
+  Optional array of CTA buttons rendered above the steps grid. The first button uses `variant="default"`, subsequent buttons use `variant="outline"`.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token. Defaults to `white`.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+### StepItem fields
+
+Each entry in `items` is a `stepItem` object:
+
+```typescript
+{
+  title: string;          // required — step heading
+  description?: string;   // optional paragraph below the title
+  list?: string[];        // optional array of bullet points (rendered with CircleCheck icon)
+}
+```
+
+### Button fields
+
+```typescript
+{
+  text: string;          // required
+  url: string;           // required — path or absolute URL
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost';
+}
+```
+
+## Usage in Sanity Studio
+
+1. Add a **Sponsor Steps** block to a page.
+2. Set an optional **Heading** and **Subheading**.
+3. Add optional **CTA Buttons** that appear above the steps.
+4. In **Steps**, click **Add item** for each process step:
+   - **Title**: required step name.
+   - **Description**: optional paragraph.
+   - **Bullet Points**: optional list of short strings with check-mark icons.
+5. Drag steps to reorder — the step number badge updates automatically.
+
+<Tip>
+  Use the **Bullet Points** list for specific deliverables or requirements within a step, keeping the **Description** for a single explanatory sentence.
+</Tip>
+
+## Timeline Layout
+
+The step grid uses a pseudo-element connector line:
+
+- **Mobile** (`< @5xl` container): vertical line on the left (`before:left-5.5 before:h-full before:w-px`).
+- **Wide** (`@5xl+` container): horizontal line across the top (`before:@5xl:top-5.5 before:@5xl:h-px before:@5xl:w-full`).
+
+Step number badges are rendered via `TileMedia variant="icon"` and display `1`, `2`, `3`, etc.
+
+## Variants / Options
+
+No `variant` field. The layout switches automatically between vertical (mobile) and horizontal (desktop) using container queries.
+
+## Example
+
+```typescript
+{
+  _type: 'sponsorSteps',
+  heading: 'How to Become a Sponsor',
+  subheading: 'Three simple steps to connect your organisation with YWCC talent.',
+  ctaButtons: [
+    { text: 'Apply Now', url: '/sponsor/apply', variant: 'default' }
+  ],
+  items: [
+    {
+      title: 'Submit an Application',
+      description: 'Fill out the sponsorship inquiry form with your project idea.',
+      list: ['Company details', 'Project brief', 'Preferred semester']
+    },
+    {
+      title: 'Meet the Team',
+      description: 'We match your project with a team of four to five students.',
+      list: ['Kick-off meeting', 'NDA signing', 'Shared communication channel']
+    },
+    {
+      title: 'Track & Review',
+      description: 'Attend milestone presentations and provide feedback.',
+      list: ['Mid-semester demo', 'Final presentation', 'Code handoff']
+    }
+  ]
+}
+```

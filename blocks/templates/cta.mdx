@@ -1,0 +1,160 @@
+---
+title: "CTA blocks"
+description: "8 fulldev/ui CTA variants (cta-1 through cta-8) for call-to-action banner sections with social proof, ratings, and button groups."
+---
+
+CTA blocks are conversion-focused banner sections placed at the end of a page or between content sections. They combine a compelling headline with action buttons and optional social proof elements such as avatar groups, star ratings, and testimonial snippets.
+
+## Variants
+
+<CardGroup cols={2}>
+  <Card title="cta-1" icon="megaphone">
+    Centered layout with avatar group + star rating social proof above the headline and two large CTA buttons.
+  </Card>
+  <Card title="cta-2" icon="megaphone">
+    Centered layout with a single prominent CTA button, no social proof.
+  </Card>
+  <Card title="cta-3" icon="megaphone">
+    Split layout: headline on the left, action buttons on the right.
+  </Card>
+  <Card title="cta-4" icon="megaphone">
+    Centered layout with a feature checklist beneath the headline.
+  </Card>
+  <Card title="cta-5" icon="megaphone">
+    Centered layout with a logo cloud strip beneath the buttons.
+  </Card>
+  <Card title="cta-6" icon="megaphone">
+    Floating card variant with a background color fill and centered content.
+  </Card>
+  <Card title="cta-7" icon="megaphone">
+    Split layout with an embedded image or media on one side.
+  </Card>
+  <Card title="cta-8" icon="megaphone">
+    Banner strip variant: compact single-row layout with inline CTA button.
+  </Card>
+</CardGroup>
+
+## Sanity `_type` names
+
+```
+cta-1.astro  →  _type: "cta-1"
+cta-2.astro  →  _type: "cta-2"
+...through cta-8
+```
+
+## Props interface
+
+`cta-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/cta-1.astro
+interface Props {
+  class?: string
+  id?: string
+  links?: {
+    icon?: string
+    text?: string
+    href?: string
+    target?: string
+  }[]
+  item?: {
+    images?: {
+      src: string
+      alt: string
+    }[]
+    rating?: number
+    description?: string
+  }
+}
+```
+
+<ParamField path="class" type="string">
+  Additional CSS classes forwarded to the root `<Section>` element.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` attribute for anchor links.
+</ParamField>
+
+<ParamField path="links" type="object[]">
+  CTA buttons rendered centered in the section. The first item uses the `default` button variant at `size="lg"`; subsequent items use `secondary`. Each item accepts `icon`, `text`, `href`, and `target`.
+</ParamField>
+
+<ParamField path="item" type="object">
+  Social proof composite element rendered above the headline. Contains:
+  - `images` — array of avatar objects (`src`, `alt`), displayed as a stacked avatar group with a ring border
+  - `rating` — numeric star rating (1–5) rendered by the `<Rating>` primitive
+  - `description` — short trust copy beneath the rating (e.g. `"Trusted by 10,000+ customers"`)
+</ParamField>
+
+Headline and subheading copy are passed through the default `<slot />` inside `<SectionProse>`.
+
+## Storybook story
+
+```typescript
+// astro-app/src/components/blocks/cta-1.stories.ts
+export const Default = {
+  args: {
+    links: [
+      { text: "Get Started", href: "#" },
+      { text: "Learn More", href: "#" }
+    ],
+    item: {
+      images: [
+        { src: "https://placehold.co/44x44", alt: "User 1" },
+        { src: "https://placehold.co/44x44", alt: "User 2" },
+        { src: "https://placehold.co/44x44", alt: "User 3" }
+      ],
+      rating: 5,
+      description: "Trusted by 10,000+ customers"
+    }
+  }
+}
+```
+
+## Component internals
+
+`cta-1.astro` uses the `Section` primitive with `variant="floating"` to produce the card-like appearance with padding and a border:
+
+```astro
+<Section variant="floating">
+  <SectionContent class="items-center">
+    <Item class="p-0">
+      <ItemMedia class="-space-x-5">
+        {item?.images?.map(image => (
+          <Avatar class="ring-background size-11 ring">
+            <AvatarImage {...image} />
+          </Avatar>
+        ))}
+      </ItemMedia>
+      <ItemContent class="mt-1">
+        <Rating rating={item?.rating} />
+        <ItemDescription>{item?.description}</ItemDescription>
+      </ItemContent>
+    </Item>
+    <SectionProse class="text-center" size="lg">
+      <slot />
+    </SectionProse>
+    <SectionActions class="justify-center">
+      {links?.map(({ icon, text, ...link }, i) => (
+        <Button variant={i === 0 ? "default" : "secondary"} size="lg" {...link}>
+          {icon && <Icon name={icon} />}
+          {text}
+        </Button>
+      ))}
+    </SectionActions>
+  </SectionContent>
+</Section>
+```
+
+## Installation
+
+```bash
+npx shadcn@latest add @fulldev/cta-1
+```
+
+Repeat for each variant (`cta-2` through `cta-8`) as needed.
+
+<Note>
+All 8 CTA variants are pre-installed in the repo. Sanity schema + GROQ wiring is tracked in Stories 2.4–2.8. The `item.rating` field maps to a Sanity `number` field clamped to 1–5.
+</Note>

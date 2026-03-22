@@ -1,0 +1,106 @@
+---
+title: "Feature Grid"
+description: "Numbered tile grid for displaying program features, benefits, or capabilities with configurable column count."
+---
+
+The `FeatureGrid` block renders a responsive grid of feature tiles, each displaying a zero-padded sequence number, a title, and a description. It is designed for listing program highlights, sponsor benefits, or curriculum modules in a scannable layout.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional section heading rendered as `<h2>` above the grid at `4xl`–`5xl`. When omitted the grid renders without a heading row.
+</ParamField>
+
+<ParamField path="items" type="FeatureItem[]" required>
+  Array of feature tile objects. At least one item is required (validated in Studio). Each item renders as a `Tile` component with a numbered badge.
+</ParamField>
+
+<ParamField path="columns" type="2 | 3 | 4">
+  Number of columns in the grid. Defaults to `3`. Maps to a `SectionGrid` size:
+  - `2` → `lg` grid (fewer, wider tiles)
+  - `3` → `default` grid
+  - `4` → `sm` grid (more, narrower tiles)
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token from the shared block base. Defaults to `white`.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes passed through from the renderer.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor-link targeting.
+</ParamField>
+
+### FeatureItem fields
+
+Each object in the `items` array is a `featureItem` object:
+
+```typescript
+{
+  title: string;        // required — tile heading
+  description?: string; // tile body text (supports newlines via whitespace-pre-line)
+  icon?: string;        // icon name string (future use)
+  image?: {             // optional image with hotspot
+    asset: SanityAsset;
+    alt: string;        // required for accessibility
+  };
+}
+```
+
+## Usage in Sanity Studio
+
+1. In the **Blocks** array on a page, choose **Feature Grid**.
+2. Add an optional **Heading** for the section.
+3. In **Items**, click **Add item** and fill in **Title** and **Description** for each feature.
+4. Expand **Layout Options** and select **2**, **3**, or **4** columns.
+
+<Tip>
+  Item descriptions support literal newlines — multi-line text entered in Studio is preserved via `whitespace-pre-line` CSS.
+</Tip>
+
+## Variants / Options
+
+This block does not have a `variant` field. The only layout toggle is the `columns` count.
+
+| `columns` | Grid size | Best for |
+|---|---|---|
+| `2` | `lg` | Long descriptions, two major pillars |
+| `3` | `default` | Standard feature list (default) |
+| `4` | `sm` | Short labels, dense capability lists |
+
+Tiles automatically display a numbered badge (`01`, `02`, …) that changes to the primary colour on hover.
+
+## Example
+
+```typescript
+{
+  _type: 'featureGrid',
+  heading: 'Why Partner With YWCC?',
+  columns: 3,
+  items: [
+    {
+      title: 'Diverse Talent Pipeline',
+      description: 'Access students from underrepresented groups in computing.'
+    },
+    {
+      title: 'Real-World Projects',
+      description: 'Teams work on scoped capstone problems you define.'
+    },
+    {
+      title: 'Brand Visibility',
+      description: 'Logo placement on the program site and at showcase events.'
+    }
+  ]
+}
+```

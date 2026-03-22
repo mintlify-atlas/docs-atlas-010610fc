@@ -1,0 +1,244 @@
+---
+title: "Adding a custom block"
+description: "Step-by-step guide for building a new CMS-connected block with its own Sanity schema, GROQ projection, and Astro component."
+---
+
+Use this path when you need a block with custom rendering logic, references to Sanity documents (sponsors, projects, events), or Portable Text content. For connecting an existing fulldev/ui template to Sanity without writing a new component, see [Wiring a template block](/blocks/adding/template-block).
+
+<Note>
+  Before you start, make sure you are on a feature branch created from `preview`: `git checkout preview && git pull && git checkout -b feat/block-your-block-name`.
+</Note>
+
+## Overview
+
+Adding a custom block touches five areas:
+
+1. Sanity schema — define the block's fields
+2. Schema registration — add the block to the studio
+3. fulldev/ui primitives — install any UI components the block needs
+4. Astro component — implement the block using the flat-props pattern
+5. GROQ projection and typegen — expose the data and generate types
+
+## Steps
+
+<Steps>
+  <Step title="Create the Sanity schema">
+    Create a new file in `studio/src/schemaTypes/blocks/`. Use the `defineBlock` helper, which automatically adds the shared base fields (`backgroundVariant`, `spacing`, `maxWidth`) to every block and generates a collapsible **Layout Options** fieldset.
+
+    ```typescript
+    // studio/src/schemaTypes/blocks/your-block.ts
+    import { defineField, defineArrayMember } from 'sanity'
+    import { defineBlock } from '../helpers/defineBlock'
+
+    export const yourBlock = defineBlock({
+      name: 'yourBlock',          // camelCase — must match PascalCase filename with lowercased first char
+      title: 'Your Block',        // displayed in Sanity Studio
+      fields: [
+        defineField({
+          name: 'heading',
+          title: 'Heading',
+          type: 'string',
+          validation: (Rule) => Rule.required(),
+        }),
+        defineField({
+          name: 'description',
+          title: 'Description',
+          type: 'text',
+        }),
+        defineField({
+          name: 'items',
+          title: 'Items',
+          type: 'array',
+          of: [defineArrayMember({ type: 'yourItemObject' })],
+        }),
+      ],
+    })
+    ```
+
+    The `defineBlock` helper also supports `variants` (for layout variant radio buttons), `hiddenByVariant` (to hide fields based on the selected variant), and an `icon` for the Sanity Studio block picker.
+
+    For reference, here is how `heroBanner` uses variants and `hiddenByVariant`:
+
+    ```typescript
+    // studio/src/schemaTypes/blocks/hero-banner.ts
+    import { defineField, defineArrayMember } from 'sanity'
+    import { RocketIcon } from '@sanity/icons'
+    import { defineBlock } from '../helpers/defineBlock'
+
+    export const heroBanner = defineBlock({
+      name: 'heroBanner',
+      title: 'Hero Banner',
+      icon: RocketIcon,
+      variants: [
+        { name: 'centered', title: 'Centered' },
+        { name: 'split', title: 'Split' },
+        { name: 'overlay', title: 'Overlay' },
+        { name: 'spread', title: 'Spread' },
+      ],
+      hiddenByVariant: {
+        alignment: ['split', 'spread'],  // hide 'alignment' when variant is split or spread
+      },
+      fields: [
+        defineField({ name: 'heading', title: 'Heading', type: 'string',
+          validation: (Rule) => Rule.required() }),
+        defineField({ name: 'subheading', title: 'Subheading', type: 'string' }),
+        defineField({
+          name: 'ctaButtons',
+          title: 'CTA Buttons',
+          type: 'array',
+          of: [defineArrayMember({ type: 'button' })],
+        }),
+        defineField({
+          name: 'alignment',
+          title: 'Alignment',
+          type: 'string',
+          fieldset: 'layout',
+          options: { list: ['left', 'center', 'right'], layout: 'radio' },
+          initialValue: 'center',
+        }),
+      ],
+    })
+    ```
+  </Step>
+
+  <Step title="Register the schema">
+    Open `studio/src/schemaTypes/index.ts` and add two things:
+
+    **1. Import the schema at the top:**
+
+    ```typescript
+    import { yourBlock } from './blocks/your-block'
+    ```
+
+    **2. Add it to the `schemaTypes` array:**
+
+    ```typescript
+    export const schemaTypes: SchemaTypeDefinition[] = [
+      // ... existing schemas ...
+      yourBlock,   // add here, grouped with other block schemas
+    ]
+    ```
+
+    Then open the page schema at `studio/src/schemaTypes/documents/page.ts` and add `yourBlock` to the `blocks[]` array's `of` list so editors can select it:
+
+    ```typescript
+    defineField({
+      name: 'blocks',
+      title: 'Blocks',
+      type: 'array',
+      of: [
+        // ... existing block types ...
+        defineArrayMember({ type: 'yourBlock' }),
+      ],
+    })
+    ```
+  </Step>
+
+  <Step title="Install fulldev/ui primitives">
+    If your block needs UI components (buttons, badges, icons, images), install them from the fulldev registry via the shadcn CLI. Do not copy components manually.
+
+    ```bash
+    # From the astro-app directory
+    npx shadcn@latest add @fulldev/button
+    npx shadcn@latest add @fulldev/badge
+    npx shadcn@latest add @fulldev/section
+    ```
+
+    Installed components land in `astro-app/src/components/ui/`. Import them from `@/components/ui/{name}`.
+
+    Skip this step if your block only uses components that are already installed.
+  </Step>
+
+  <Step title="Create the Astro component">
+    Create `astro-app/src/components/blocks/custom/YourBlock.astro`. The filename must be PascalCase and the first character lowercased must match the schema `name` exactly (`YourBlock` → `yourBlock`).
+
+    All blocks use the flat-props pattern: `interface Props extends YourBlockBlock` and destructure fields directly from `Astro.props`.
+
+    ```astro
+    ---
+    // astro-app/src/components/blocks/custom/YourBlock.astro
+    import type { YourBlockBlock } from '@/lib/types';
+    import { Section, SectionContent, SectionActions } from '@/components/ui/section';
+    import { Button } from '@/components/ui/button';
+    import { stegaClean } from '@sanity/client/stega';
+
+    interface Props extends YourBlockBlock {
+      class?: string;
+      id?: string;
+    }
+
+    // Destructure fields directly — not from a nested object
+    const { heading, description, items, class: className, id } = Astro.props;
+    ---
+
+    <Section class={className} id={id} data-animate>
+      <SectionContent>
+        <h2>{heading}</h2>
+        {description && <p>{description}</p>}
+        <!-- Compose from ui/ primitives + Tailwind utilities -->
+      </SectionContent>
+    </Section>
+    ```
+
+    Key conventions:
+
+    - Use `stegaClean(value)` on any string field used for logic (variant selection, conditional rendering). Raw strings from Sanity may contain stega metadata in the preview branch.
+    - Compose from components in `src/components/ui/` — do not write raw HTML for things buttons or badges cover.
+    - Add `data-animate` to the outer `<Section>` to opt into the intersection-observer entrance animation.
+    - Interactivity goes in a `<script>` tag using vanilla JS with data-attribute event delegation. Keep each handler under 50 lines.
+
+    Because `block-registry.ts` uses `import.meta.glob`, the file is automatically registered as soon as it exists. No other file needs to be updated.
+  </Step>
+
+  <Step title="Add the GROQ projection and run typegen">
+    Open `astro-app/src/lib/sanity.ts` (or the relevant query file) and add a projection for your block type inside the `blocks[]` projection. The projection reshapes Sanity's data into the flat structure your component expects.
+
+    ```typescript
+    // Example projection fragment inside the page blocks[] array projection
+    _type == 'yourBlock' => {
+      _type,
+      _key,
+      heading,
+      description,
+      backgroundVariant,
+      spacing,
+      maxWidth,
+      items[] {
+        // project each item's fields
+      },
+    },
+    ```
+
+    After adding the projection, regenerate TypeScript types:
+
+    ```bash
+    npm run typegen
+    ```
+
+    This creates the `YourBlockBlock` type that your component imports from `@/lib/types`.
+
+    Finally, build and verify Lighthouse scores hold at 90+:
+
+    ```bash
+    npm run build --workspace=astro-app
+    ```
+  </Step>
+</Steps>
+
+## Checklist
+
+Before opening a PR, confirm:
+
+- [ ] Schema file created in `studio/src/schemaTypes/blocks/`
+- [ ] Schema imported and added to `schemaTypes` array in `index.ts`
+- [ ] Block type added to the page schema's `blocks[]` array
+- [ ] Astro component created in `blocks/custom/` with PascalCase filename
+- [ ] Component uses `interface Props extends YourBlockBlock` (flat-props pattern)
+- [ ] `stegaClean` used on any string used for conditional logic
+- [ ] GROQ projection added and `npm run typegen` run successfully
+- [ ] Block renders correctly in local dev with `npm run dev`
+- [ ] Lighthouse scores remain at 95+ Performance, 90+ Accessibility
+
+<Tip>
+  Write a Storybook story (`YourBlock.stories.ts`) alongside the component so the block is visible in the component library without needing real Sanity data. See existing stories in `blocks/custom/` for the pattern.
+</Tip>

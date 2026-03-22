@@ -1,0 +1,94 @@
+---
+title: "Logo Cloud"
+description: "Compact sponsor logo grid that auto-populates from all published sponsors or accepts a manual list."
+---
+
+The `LogoCloud` block renders a dense, full-width grid of sponsor logos. Each cell links to the sponsor's website when available. Logos are displayed at reduced opacity that rises to full on hover. If a sponsor has no logo, their name is displayed as text. This block is designed for compact presence — for full sponsor profiles use `SponsorCards`.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional label text above the logo grid, rendered in small-caps `label-caps` style with muted foreground colour.
+</ParamField>
+
+<ParamField path="autoPopulate" type="boolean">
+  When `true` (default), the GROQ query automatically fetches all published `sponsor` documents and resolves their logos. When `false`, the `sponsors` reference array is used instead.
+</ParamField>
+
+<ParamField path="sponsors" type="Sponsor[]">
+  Array of resolved `sponsor` document references. Only visible in Studio when `autoPopulate` is `false`. The GROQ query resolves references before the component receives them.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token. The section itself always uses `bg-muted` — this field primarily affects adjacent spacing context.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. The section uses `size="sm"` so padding is inherently compact.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Logo Cloud** block to a page.
+2. Optionally set a **Heading** label (e.g. `"Trusted by industry leaders"`).
+3. Choose between:
+   - **Auto-Populate: On** (default) — all published sponsors appear automatically.
+   - **Auto-Populate: Off** — a **Sponsors** reference array appears; add specific sponsors manually.
+
+<Tip>
+  Keep `autoPopulate` on for the sponsors page so the logo cloud stays current as new sponsors are published, without any manual maintenance.
+</Tip>
+
+<Warning>
+  When `autoPopulate` is `false`, Studio requires at least one sponsor reference. An empty manual list will trigger a validation error on publish.
+</Warning>
+
+## Grid Layout
+
+The grid adapts responsively:
+
+| Viewport | Columns |
+|---|---|
+| Mobile (`< sm`) | 2 |
+| Small (`sm+`) | 4 |
+| Large (`lg+`) | 8 |
+
+Logos are rendered at `120×40` max dimensions using `fit('max')` to avoid distortion. Cells are separated by `1px` border lines from `bg-border`.
+
+## Variants / Options
+
+No `variant` field. The only behavioural toggle is `autoPopulate`.
+
+## Example
+
+```typescript
+// Auto-populate all sponsors
+{
+  _type: 'logoCloud',
+  heading: 'Our Partners',
+  autoPopulate: true
+}
+
+// Manual sponsor selection
+{
+  _type: 'logoCloud',
+  heading: 'Platinum Partners',
+  autoPopulate: false,
+  sponsors: [
+    { _ref: 'sponsor-doc-id-1', _type: 'reference' },
+    { _ref: 'sponsor-doc-id-2', _type: 'reference' }
+  ]
+}
+```

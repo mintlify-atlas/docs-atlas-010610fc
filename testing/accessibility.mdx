@@ -1,0 +1,172 @@
+---
+title: "Accessibility testing"
+description: "WCAG 2.1 AA compliance via axe-core integrated into Playwright E2E tests, with a Lighthouse accessibility score target of 90+."
+---
+
+Accessibility is tested at two levels: automated WCAG 2.1 AA audits via axe-core inside every E2E test, and Lighthouse CI score enforcement on PRs to `preview`.
+
+## axe-core integration
+
+The helper `tests/support/helpers/a11y.ts` wraps `@axe-core/playwright` with WCAG 2.1 AA tag filtering and structured violation output:
+
+```typescript
+import AxeBuilder from '@axe-core/playwright'
+import { type Page, expect } from '@playwright/test'
+
+export async function expectAccessible(
+  page: Page,
+  options?: { disableRules?: string[] }
+) {
+  const builder = new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+
+  if (options?.disableRules?.length) {
+    builder.disableRules(options.disableRules)
+  }
+
+  const results = await builder.analyze()
+
+  const violations = results.violations.map((v) => ({
+    rule: v.id,
+    impact: v.impact,
+    description: v.description,
+    nodes: v.nodes.length,
+    targets: v.nodes.slice(0, 3).map((n) => n.target.join(' > ')),
+  }))
+
+  expect(
+    violations,
+    `Accessibility violations found:\n${JSON.stringify(violations, null, 2)}`
+  ).toHaveLength(0)
+}
+```
+
+When a violation is found, the test failure message includes the axe rule ID, impact level, description, node count, and up to three CSS selectors pointing to the failing elements.
+
+## Using expectAccessible in tests
+
+Every new page or block must include an accessibility assertion. Import the helper from the support directory:
+
+```typescript
+import { test, expect } from '../support/fixtures'
+import { expectAccessible } from '../support/helpers/a11y'
+
+test('[P0] should have no accessibility violations', async ({ page }) => {
+  await page.goto('/')
+  await expectAccessible(page)
+})
+```
+
+The smoke test (`tests/e2e/smoke.spec.ts`) runs this assertion on every test run across all 5 browser projects, giving broad coverage of the homepage on each platform.
+
+### Disabling specific rules
+
+Occasionally a third-party component or a known design constraint causes a rule violation that cannot be fixed immediately. Pass `disableRules` to suppress specific axe rules:
+
+```typescript
+await expectAccessible(page, {
+  disableRules: ['color-contrast'],
+})
+```
+
+<Warning>
+Only disable rules for documented exceptions. Include a comment explaining why and link to a tracking issue.
+</Warning>
+
+## Lighthouse CI score target
+
+Lighthouse CI enforces a minimum accessibility score of **90** on every PR to `preview`. This runs as a separate CI step after E2E tests complete.
+
+| Lighthouse category | Target |
+|---|---|
+| Performance | 95+ |
+| Accessibility | 90+ |
+| Best Practices | 90+ |
+| SEO | 90+ |
+
+Lighthouse accessibility covers audits that axe-core does not — image alt text at the Lighthouse layer, link text quality, heading order, and color contrast ratios.
+
+## Common accessibility patterns
+
+### Semantic HTML
+
+All block components use semantic landmark elements. The page structure uses `<header>`, `<main>`, `<footer>`, and section landmarks:
+
+```astro
+<section aria-labelledby="faq-heading">
+  <h2 id="faq-heading">{heading}</h2>
+  <!-- items -->
+</section>
+```
+
+### ARIA attributes
+
+Interactive components include the necessary ARIA attributes. The FAQ Section block uses `aria-expanded` and `aria-controls` for accordion state:
+
+```html
+<button
+  aria-expanded="false"
+  aria-controls="answer-1"
+  data-faq-toggle="answer-1"
+>
+  Question text
+</button>
+<div id="answer-1" hidden>Answer text</div>
+```
+
+### Keyboard navigation
+
+The FAQ Section is fully keyboard-navigable. Keyboard behavior is tested in the E2E suite:
+
+```typescript
+test('FAQ keyboard navigation', async ({ page }) => {
+  await page.goto('/faq')
+
+  // Tab to first FAQ button
+  await page.keyboard.press('Tab')
+  const button = page.getByRole('button', { name: /lorem ipsum/i })
+  await expect(button).toBeFocused()
+
+  // Enter key opens the answer
+  await page.keyboard.press('Enter')
+  await expect(button).toHaveAttribute('aria-expanded', 'true')
+})
+```
+
+### Focus management
+
+- All interactive elements are reachable by keyboard in logical tab order.
+- Visible focus indicators are present — Tailwind's `focus-visible:ring` utility is used throughout.
+- No `tabindex` values greater than 0.
+
+### Images
+
+- Decorative images use `alt=""` to hide them from screen readers.
+- Informative images have descriptive `alt` text.
+- Sanity image assets include an `alt` field in the schema.
+
+## Adding accessibility tests for a new block
+
+<Steps>
+  <Step title="Create the E2E spec">
+    Add a spec file in `tests/e2e/` for the page that renders the block (or add to an existing spec).
+  </Step>
+  <Step title="Navigate to the page">
+    ```typescript
+    await page.goto('/page-with-your-block')
+    ```
+  </Step>
+  <Step title="Call expectAccessible">
+    ```typescript
+    await expectAccessible(page)
+    ```
+    This runs all WCAG 2.1 A, AA, and 2.1 AA rules against the full page DOM.
+  </Step>
+  <Step title="Fix violations before merging">
+    axe-core violations fail the test with the rule ID and affected element selectors. Fix each violation in the component before opening a PR.
+  </Step>
+</Steps>
+
+<Tip>
+Run `npm run test:headed` to watch the browser while debugging accessibility issues. Pair this with the Axe DevTools browser extension for interactive rule inspection.
+</Tip>

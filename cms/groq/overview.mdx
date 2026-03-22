@@ -1,0 +1,115 @@
+---
+title: "GROQ queries overview"
+description: "How GROQ queries are defined, typed, and used in the Astro front end to fetch content from Sanity at build time."
+---
+
+GROQ (Graph-Relational Object Queries) is Sanity's query language. All content fetching in the Astro app goes through GROQ queries defined in `astro-app/src/lib/sanity.ts`.
+
+## `defineQuery` pattern
+
+Every query is wrapped with `defineQuery` from the `groq` package. This enables Sanity TypeGen to extract the query's return type automatically and write it to `sanity.types.ts`.
+
+```typescript
+import groq, { defineQuery } from 'groq'
+
+export const ALL_SPONSORS_QUERY = defineQuery(groq`
+  *[_type == "sponsor" && hidden != true && ($site == "" || site == $site)]
+  | order(name asc){
+    _id, name, "slug": slug.current,
+    logo{ asset->{ _id, url, metadata { lqip, dimensions } }, alt, hotspot, crop },
+    tier, description, website, featured
+  }
+`)
+```
+
+The TypeGen-generated return type `ALL_SPONSORS_QUERY_RESULT` is imported in the same file and used wherever the query result is typed:
+
+```typescript
+import type { ALL_SPONSORS_QUERY_RESULT } from '@/sanity.types'
+
+export type Sponsor = ALL_SPONSORS_QUERY_RESULT[number]
+```
+
+## How queries are used at build time
+
+The Astro app uses a **static build by default**. Queries run at build time inside `getStaticPaths` or in the page frontmatter:
+
+1. `getStaticPaths` calls slug-listing queries (e.g. `ALL_PAGE_SLUGS_QUERY`) to enumerate all routes.
+2. `prefetchPages()` batch-fetches all page data in parallel (6 at a time) and caches it in a module-level `Map`.
+3. Per-page renders call helper functions (`getPage`, `getAllSponsors`, etc.) which return from the cache instantly.
+
+## `getSiteParams()` for multi-site filtering
+
+Every query that targets site-aware document types includes a `$site` parameter. `getSiteParams()` returns the correct value for the current build:
+
+```typescript
+export function getSiteParams(): Record<string, string> {
+  return isMultiSite ? { site: SITE_ID } : { site: '' }
+}
+```
+
+- On the `production` dataset: `{ site: '' }` — the `($site == "" || site == $site)` condition short-circuits on the empty string, so all documents match.
+- On the `rwc` dataset: `{ site: 'rwc-us' }` or `{ site: 'rwc-intl' }` — only documents belonging to the current site are returned.
+
+`SITE_ID` and `DATASET` are resolved at build time from `PUBLIC_SITE_ID` and `PUBLIC_SANITY_DATASET` environment variables, which Vite statically replaces.
+
+## `loadQuery()` wrapper
+
+All queries go through `loadQuery()` rather than calling `sanityClient.fetch()` directly. When Visual Editing is active, it switches to the `drafts` perspective, enables stega encoding, and accumulates sync tags for the Live Content API:
+
+```typescript
+export async function loadQuery<T>({ query, params }) {
+  const perspective = visualEditingEnabled ? 'drafts' : 'published'
+  const response = await sanityClient.fetch<T>(query, params ?? {}, {
+    filterResponse: false,
+    perspective,
+    resultSourceMap: visualEditingEnabled ? 'withKeyArraySelector' : false,
+    stega: visualEditingEnabled,
+    ...(visualEditingEnabled ? { token } : {}),
+  })
+  return { result: response.result, syncTags: response.syncTags ?? [] }
+}
+```
+
+## Named queries exported from `sanity.ts`
+
+| Export | Description |
+|---|---|
+| `SITE_SETTINGS_QUERY` | Fetch the singleton site settings document by ID |
+| `ALL_PAGE_SLUGS_QUERY` | All published page slugs (for `getStaticPaths`) |
+| `PAGE_BY_SLUG_QUERY` | Full page data including all block projections |
+| `ALL_SPONSORS_QUERY` | All visible sponsors ordered by name |
+| `ALL_SPONSOR_SLUGS_QUERY` | All visible sponsor slugs (for `getStaticPaths`) |
+| `SPONSOR_BY_SLUG_QUERY` | Single sponsor with associated projects |
+| `ALL_PROJECTS_QUERY` | All projects with resolved sponsor references |
+| `ALL_PROJECT_SLUGS_QUERY` | All project slugs (for `getStaticPaths`) |
+| `PROJECT_BY_SLUG_QUERY` | Single project with team, mentor, and linked testimonials |
+| `ALL_TESTIMONIALS_QUERY` | All testimonials with linked project reference |
+| `ALL_EVENTS_QUERY` | All events ordered by date |
+| `ALL_EVENT_SLUGS_QUERY` | All event slugs (for `getStaticPaths`) |
+| `EVENT_BY_SLUG_QUERY` | Single event with SEO fields |
+| `EVENTS_BY_MONTH_QUERY` | Events within a date range (for calendar navigation) |
+| `SPONSOR_BY_EMAIL_QUERY` | Find a sponsor by contact or allowed email (portal auth) |
+| `SPONSOR_PORTAL_QUERY` | Sponsor + projects for the portal page |
+| `SPONSOR_PROJECTS_API_QUERY` | Projects for a sponsor by ID (portal API endpoint) |
+| `SPONSOR_PROJECTS_QUERY` | Projects for a sponsor by email (portal progress page) |
+
+## Helper functions
+
+| Function | Caches result | Description |
+|---|---|---|
+| `getSiteSettings()` | Yes | Fetch site settings singleton |
+| `getAllSponsors()` | Yes | Fetch all visible sponsors |
+| `getAllProjects()` | Yes | Fetch all projects |
+| `getAllTestimonials()` | Yes | Fetch all testimonials |
+| `getAllEvents()` | Yes | Fetch all events |
+| `getPage(slug)` | Yes (via prefetch) | Fetch a single page by slug |
+| `getSponsorBySlug(slug)` | No | Fetch a single sponsor by slug |
+| `getProjectBySlug(slug)` | No | Fetch a single project by slug |
+| `getEventBySlug(slug)` | No | Fetch a single event by slug |
+| `prefetchPages(slugs)` | Populates cache | Batch-fetch all pages in parallel |
+| `getSponsorProjects(email)` | No | Fetch projects for a sponsor by email |
+
+<Note>
+  Cached helpers (`getAllSponsors`, etc.) bypass the cache and re-fetch when Visual Editing is enabled, so the preview always shows the latest draft data.
+</Note>

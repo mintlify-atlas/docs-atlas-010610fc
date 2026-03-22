@@ -1,0 +1,101 @@
+---
+title: "Page document"
+description: "Schema fields, template options, and GROQ query for the page document type used in the Astro page builder."
+---
+
+The `page` document is the primary content unit for the Capstone site. Every URL-addressable page — home, sponsors listing, events, and any custom page — is a `page` document assembled from an ordered array of content blocks.
+
+## Fields
+
+### Layout group
+
+<ParamField path="title" type="string" required>
+  Human-readable page title. Displayed in the browser tab and used as the source for auto-generating the slug.
+</ParamField>
+
+<ParamField path="slug" type="slug" required>
+  URL path for the page. Auto-generated from `title` (max 96 characters). Used by `[...slug].astro` to match incoming routes and by `ALL_PAGE_SLUGS_QUERY` for static path generation.
+</ParamField>
+
+<ParamField path="site" type="string">
+  Multi-site discriminator. Hidden on the `production` (Capstone) dataset. Required on the `rwc` dataset — must be `rwc-us` or `rwc-intl`.
+</ParamField>
+
+<ParamField path="template" type="string">
+  Page layout template. Defaults to `default`. Controls which template component wraps the block renderer.
+
+  | Value | Template component |
+  |---|---|
+  | `default` | `DefaultTemplate.astro` |
+  | `fullWidth` | `FullWidthTemplate.astro` |
+  | `landing` | `LandingTemplate.astro` (hides nav) |
+  | `sidebar` | `SidebarTemplate.astro` |
+  | `twoColumn` | `TwoColumnTemplate.astro` |
+</ParamField>
+
+### SEO group
+
+<ParamField path="seo" type="seo object">
+  Embedded SEO object with `metaTitle`, `metaDescription`, and `ogImage`. Falls back to `title` and `siteDescription` from Site Settings when not set.
+</ParamField>
+
+### Content group
+
+<ParamField path="blocks" type="array of block objects">
+  Ordered list of content blocks that make up the page body. The insert menu groups blocks into categories:
+
+  - **Heroes**: `heroBanner`
+  - **Content**: `richText`, `textWithImage`, `faqSection`, `articleList`, `timeline`, `pullquote`
+  - **Display**: `teamGrid`, `imageGallery`
+  - **Media & Stats**: `statsRow`, `featureGrid`, `videoEmbed`
+  - **Social Proof**: `sponsorCards`, `projectCards`, `logoCloud`, `sponsorSteps`, `testimonials`, `eventList`, `sponsorshipTiers`
+  - **Data**: `comparisonTable`
+  - **Calls to Action**: `ctaBanner`, `contactForm`
+  - **Utility**: `divider`, `announcementBar`
+</ParamField>
+
+## Template compatibility validation
+
+The `blocks` field includes a custom validation rule that warns editors when a wide block (e.g. `heroBanner`, `sponsorCards`) is placed on a constrained-column template (`sidebar`, `twoColumn`). Incompatible combinations produce a Studio warning — they are still publishable.
+
+## Fetching pages: `PAGE_BY_SLUG_QUERY`
+
+Pages are fetched by slug using `PAGE_BY_SLUG_QUERY`, defined in `astro-app/src/lib/sanity.ts`:
+
+```groq
+*[_type == "page" && slug.current == $slug && ($site == "" || site == $site)][0]{
+  _id,
+  title,
+  "slug": slug.current,
+  template,
+  seo { metaTitle, metaDescription, ogImage { … } },
+  blocks[]{
+    _type, _key, backgroundVariant, spacing, maxWidth, variant,
+    _type == "heroBanner" => { heading, subheading, backgroundImages, ctaButtons, alignment },
+    _type == "richText" => { content[]{ … } },
+    // … one branch per block type
+  }
+}
+```
+
+The `$site` parameter short-circuits on the `production` dataset (empty string), so all pages match regardless of the `site` field value.
+
+## Dynamic routing via `[...slug].astro`
+
+`astro-app/src/pages/[...slug].astro` handles all page routes:
+
+<Steps>
+  <Step title="getStaticPaths">
+    Fetches all published page slugs via `ALL_PAGE_SLUGS_QUERY`, then calls `prefetchPages()` to batch-fetch all page data in parallel (6 at a time) and populate the module-level cache.
+  </Step>
+  <Step title="Per-page render">
+    Calls `getPage(slug)` — returns instantly from the cache. Resolves the template component from the `template` field value.
+  </Step>
+  <Step title="Block resolution">
+    Fetches sponsors, projects, testimonials, and events once each (`getAllSponsors()`, etc.) and passes them to `<BlockRenderer>` as props. Block-level data is resolved client-side from these pre-fetched arrays.
+  </Step>
+</Steps>
+
+<Note>
+  In Visual Editing mode, `getStaticPaths` is bypassed. The page is rendered as a server island (`SanityPageContent server:defer`) that fetches fresh draft data on every request.
+</Note>

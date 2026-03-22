@@ -1,0 +1,115 @@
+---
+title: "Project structure"
+description: "Directory layout of the monorepo, explaining the role of every major folder and the key files that wire the system together."
+---
+
+The repository is an **npm workspaces monorepo** with two packages: `astro-app` (the Astro frontend) and `studio` (Sanity Studio). Shared tooling — Playwright, semantic-release, GitHub Actions — lives at the repo root.
+
+## Full directory tree
+
+```text
+astro-shadcn-sanity/
+├── astro-app/                        # Astro frontend (SSG + selective SSR)
+│   ├── astro.config.mjs              # output: 'static', Tailwind, Sanity, Cloudflare adapter
+│   ├── components.json               # shadcn CLI config pointing to @fulldev registry
+│   ├── package.json                  # astro-app workspace package
+│   └── src/
+│       ├── components/
+│       │   ├── ui/                   # fulldev/ui primitives (button, badge, section, etc.)
+│       │   ├── blocks/               # fulldev/ui template block variants (100+)
+│       │   │   └── custom/           # Custom CMS-connected blocks (23)
+│       │   ├── portal/               # React-hydrated portal components (8)
+│       │   ├── block-registry.ts     # Auto-discovers all blocks via import.meta.glob()
+│       │   ├── BlockRenderer.astro   # Dispatches block._type → component + spread props
+│       │   ├── BlockWrapper.astro    # Applies spacing, background, maxWidth from blockBaseFields
+│       │   ├── Header.astro          # Site header (site settings driven)
+│       │   ├── Footer.astro          # Site footer (site settings driven)
+│       │   └── Breadcrumb.astro      # Auto-generated breadcrumbs
+│       ├── layouts/
+│       │   └── BaseLayout.astro      # Root HTML shell: head, header, footer, slot
+│       ├── lib/
+│       │   ├── sanity.ts             # Sanity client, all GROQ queries, block resolvers
+│       │   ├── types.ts              # Generated TypeScript types (do not edit manually)
+│       │   ├── drizzle-schema.ts     # D1 auth database schema (Drizzle ORM)
+│       │   ├── image.ts              # urlFor() image URL builder
+│       │   └── utils.ts             # cn() and other shared utilities
+│       ├── pages/
+│       │   ├── index.astro           # Home page (SSG)
+│       │   ├── [...slug].astro       # CMS-driven pages (SSG)
+│       │   ├── sponsors/             # Sponsor listing + detail (SSG)
+│       │   ├── projects/             # Project listing + detail (SSG)
+│       │   ├── events/               # Event listing + detail (SSG)
+│       │   ├── portal/               # Authenticated portal pages (SSR)
+│       │   ├── student/              # Student dashboard (SSR)
+│       │   ├── auth/                 # Auth entry page (SSR)
+│       │   └── api/                  # API endpoints (SSR)
+│       └── styles/
+│           └── global.css            # @import "tailwindcss" + theme tokens + CSS variables
+├── studio/                           # Sanity Studio (CMS)
+│   ├── package.json                  # studio workspace package
+│   └── src/
+│       └── schemaTypes/
+│           ├── blocks/               # Block object schemas (one file per block)
+│           ├── documents/            # Document schemas: page, sponsor, project, etc.
+│           │   ├── page.ts
+│           │   ├── site-settings.ts
+│           │   ├── sponsor.ts
+│           │   ├── project.ts
+│           │   ├── testimonial.ts
+│           │   ├── event.ts
+│           │   └── submission.ts
+│           ├── objects/              # Shared objects: seo, button, link, portableText, etc.
+│           ├── helpers/
+│           │   └── defineBlock.ts    # Factory helper — adds shared base fields to every block
+│           └── index.ts             # Exports all schema types; registers documents + blocks
+├── tests/                            # Playwright E2E test suite
+│   ├── e2e/                          # Full browser tests (14 files × 5 browsers)
+│   └── integration/                  # Schema + module import tests (22 files)
+├── .github/workflows/                # GitHub Actions
+│   ├── ci.yml                        # PR checks: unit tests + Lighthouse CI
+│   ├── release.yml                   # semantic-release on main
+│   ├── sync-preview.yml              # Auto-sync preview ← main after release
+│   ├── deploy-storybook.yml          # Storybook → GitHub Pages
+│   └── enforce-preview-only.yml      # Blocks direct pushes to main from non-preview
+├── docs/                             # Developer guides and architecture docs
+├── package.json                      # Root workspace: dev script, test scripts, Playwright
+├── playwright.config.ts              # 5 browser projects + axe-core a11y config
+├── .releaserc.json                   # semantic-release: version bump + changelog + sync
+└── CHANGELOG.md                      # Auto-generated by semantic-release (do not edit)
+```
+
+## Key directories
+
+<CardGroup cols={2}>
+  <Card title="astro-app/src/components/blocks/custom/" icon="puzzle">
+    23 CMS-connected custom blocks. Each is an `.astro` file that imports from `ui/` primitives and receives flat spread props matching the Sanity block schema. Auto-discovered by `block-registry.ts` — no manual registration.
+  </Card>
+  <Card title="astro-app/src/components/ui/" icon="box">
+    fulldev/ui primitives installed via the shadcn CLI (`npx shadcn@latest add @fulldev/{name}`). These are owned copies — not installed as npm dependencies — so they can be modified freely.
+  </Card>
+  <Card title="studio/src/schemaTypes/" icon="database">
+    All Sanity schemas. Documents define top-level content types. Blocks define page builder sections. Objects are shared field groups. The `defineBlock` helper merges `block-base` fields (spacing, background, maxWidth) into every block automatically.
+  </Card>
+  <Card title="astro-app/src/lib/sanity.ts" icon="code">
+    Single source of truth for all GROQ queries. Uses `defineQuery()` for type safety. Contains the Sanity client config and block resolver functions that hydrate display-mode blocks (e.g., `resolveBlockSponsors()`).
+  </Card>
+  <Card title="astro-app/src/pages/portal/" icon="lock">
+    All pages here export `export const prerender = false`. The Cloudflare Worker runs auth middleware before each handler. `Astro.locals.user` carries the validated session.
+  </Card>
+  <Card title="tests/" icon="flask">
+    Playwright config at repo root runs E2E tests across 5 browser/device projects (Chromium, Firefox, WebKit, Pixel 7, iPhone 14). Integration tests validate schema correctness without a browser.
+  </Card>
+</CardGroup>
+
+## Key files
+
+| File | Purpose |
+|---|---|
+| `astro-app/src/components/block-registry.ts` | Uses `import.meta.glob()` to auto-discover every `.astro` file in `blocks/` and `blocks/custom/`. Maps filename (camelCased) to component. No manual registration needed. |
+| `astro-app/src/components/BlockRenderer.astro` | Accepts a `block` prop, looks it up in the registry, and renders `<Component {...block} />`. Single dispatch for all 130+ block types. |
+| `astro-app/src/components/BlockWrapper.astro` | Wraps every block in a `<section>` with `backgroundVariant`, `spacing`, and `maxWidth` classes from `block-base` fields. |
+| `astro-app/src/lib/sanity.ts` | Sanity client (CDN vs live), all `defineQuery()` GROQ queries, and block resolver functions. |
+| `studio/src/schemaTypes/helpers/defineBlock.ts` | Merges shared `block-base` fields into every block schema. Keeps block definitions DRY. |
+| `astro-app/astro.config.mjs` | Sets `output: 'static'`, registers `@astrojs/cloudflare`, `@sanity/astro`, `@tailwindcss/vite`, and `@astrojs/react`. Reads multi-site env vars. |
+| `.releaserc.json` | semantic-release config: conventional commits → version bump → CHANGELOG → GitHub Release → preview sync → Discord. |
+| `playwright.config.ts` | Defines 5 browser projects, axe-core a11y plugin, and base URL for E2E tests. |

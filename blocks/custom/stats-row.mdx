@@ -1,0 +1,86 @@
+---
+title: "Stats Row"
+description: "Compact four-column row of large numeric stats with labels, in light or dark background."
+---
+
+The `StatsRow` block renders a compact, high-contrast row of statistics — typically program metrics like student count, sponsor count, or placement rate. Stats are displayed in a `2×4` responsive grid (two columns on mobile, four on `md+`) with oversized numerals and small-caps labels.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional centred section heading above the stats grid, rendered at `2xl`–`3xl`.
+</ParamField>
+
+<ParamField path="stats" type="StatItem[]" required>
+  Array of stat objects. At least one stat is required. Rendered as four evenly-spaced columns.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Only `dark` is treated specially: the section uses `bg-foreground text-background` with a matching border. All other values use `bg-muted` with a `border-border` rule. Defaults to `white` (renders as the muted/light style).
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`. The section uses `size="sm"` internally, so padding is already compact.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+### StatItem fields
+
+Each entry in `stats` is a `statItem` object:
+
+```typescript
+{
+  value: string;        // required — e.g. "50+", "$2M", "98%"
+  label: string;        // required — small-caps descriptor below the value
+  description?: string; // optional longer description (not currently rendered in this block)
+}
+```
+
+## Usage in Sanity Studio
+
+1. Add a **Stats Row** block to a page.
+2. Add an optional **Heading**.
+3. In **Stats**, click **Add item** for each metric:
+   - **Value**: the large display number or string (e.g. `"200+"`).
+   - **Label**: the short descriptor (e.g. `"Students Placed"`).
+4. Expand **Layout Options** and set **Background Variant** to `dark` for a reversed colour scheme.
+
+<Tip>
+  Keep stat values short — they render at `4xl`–`6xl` and long strings will break the layout on smaller viewports. Values like `"$2M"`, `"50+"`, or `"98%"` work best.
+</Tip>
+
+## Variants / Options
+
+No `variant` field. The only visual toggle is `backgroundVariant`:
+
+| `backgroundVariant` | Background | Text | Border |
+|---|---|---|---|
+| `white` / `light` / `primary` | `bg-muted` | foreground | `border-border` |
+| `dark` | `bg-foreground` | `text-background` | `border-foreground` |
+
+## Example
+
+```typescript
+{
+  _type: 'statsRow',
+  heading: 'Program Impact',
+  backgroundVariant: 'dark',
+  stats: [
+    { value: '200+', label: 'Students' },
+    { value: '50+',  label: 'Industry Partners' },
+    { value: '98%',  label: 'Placement Rate' },
+    { value: '$2M',  label: 'In Scholarships' }
+  ]
+}
+```

@@ -1,0 +1,95 @@
+---
+title: "Project document"
+description: "Schema fields for the project document type, which represents a capstone team project sponsored by an industry partner."
+---
+
+The `project` document represents a student capstone project. Projects are linked to a `sponsor` document and appear in `projectCards` page blocks and on dedicated project detail pages at `/projects/[slug]`.
+
+## Fields
+
+### Main group
+
+<ParamField path="title" type="string" required>
+  Project title. Used as the display name in the Studio preview and as the source for the auto-generated slug.
+</ParamField>
+
+<ParamField path="slug" type="slug" required>
+  URL slug for the project detail page (`/projects/[slug]`). Auto-generated from `title`. Used by `ALL_PROJECT_SLUGS_QUERY` for static path generation.
+</ParamField>
+
+<ParamField path="site" type="string">
+  Multi-site discriminator. Hidden on the `production` (Capstone) dataset. Required on the `rwc` dataset.
+</ParamField>
+
+<ParamField path="sponsor" type="reference → sponsor">
+  Reference to the sponsoring company's `sponsor` document. Resolved to include the sponsor's name, slug, logo, tier, and industry in `PROJECT_BY_SLUG_QUERY`.
+</ParamField>
+
+<ParamField path="status" type="string" required>
+  Project lifecycle stage. Defaults to `active`.
+
+  | Value | Label |
+  |---|---|
+  | `active` | Active |
+  | `completed` | Completed |
+  | `archived` | Archived |
+</ParamField>
+
+<ParamField path="featured" type="boolean">
+  When `true`, this project appears when a `projectCards` block is set to **Featured** display mode. Defaults to `false`.
+</ParamField>
+
+<ParamField path="semester" type="string">
+  Academic semester identifier (e.g. `Fall 2025`, `Spring 2026`). Used for grouping and filtering in the `projectCards` block.
+</ParamField>
+
+### Content group
+
+<ParamField path="content" type="portableText">
+  Rich text description of the project — goals, approach, and deliverables. Rendered using the `PortableText` component on the project detail page.
+</ParamField>
+
+<ParamField path="outcome" type="text">
+  Plain-text summary of the project's outcomes and real-world impact. Displayed in the impact section of the detail page.
+</ParamField>
+
+### Team group
+
+<ParamField path="team" type="array of objects">
+  Array of team members. Each member object has:
+  - `name` (string, required) — student's full name
+  - `role` (string) — one of `lead`, `developer`, `designer`, `researcher`, `qa`
+</ParamField>
+
+<ParamField path="mentor" type="object">
+  Faculty or industry mentor for the project. Inline object with:
+  - `name` (string, required)
+  - `title` (string) — academic or professional title
+  - `department` (string) — university department or company division
+</ParamField>
+
+### Tags group
+
+<ParamField path="technologyTags" type="array of string">
+  Technology tags from a predefined list of 60+ options (e.g. `React`, `Python`, `AI/ML`, `Docker`). Displayed as chips on project cards and the detail page. Rendered in tag layout. Must be unique within the array.
+</ParamField>
+
+### SEO group
+
+<ParamField path="seo" type="seo object">
+  SEO metadata for the project detail page.
+</ParamField>
+
+## Linked testimonials
+
+Testimonials can reference a project via the `testimonial.project` field. `PROJECT_BY_SLUG_QUERY` automatically back-references linked testimonials:
+
+```groq
+"testimonials": *[_type == "testimonial" && project._ref == ^._id && ($site == "" || site == $site)]{
+  _id, name, quote, role, organization, type, videoUrl, photo{ … }
+}
+```
+
+## Sponsor portal access
+
+The sponsor portal (`/portal/[sponsorSlug]`) uses `SPONSOR_PORTAL_QUERY` to fetch a sponsor and all projects where `sponsor._ref` matches the sponsor's `_id`. This means a project appears in a sponsor's portal automatically once the `sponsor` reference field is set.

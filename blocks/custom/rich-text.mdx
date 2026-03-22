@@ -1,0 +1,76 @@
+---
+title: "Rich Text"
+description: "Free-form Portable Text content block rendered with full prose styling."
+---
+
+The `RichText` block renders Sanity Portable Text inside a constrained, typographically styled prose container. Use it for long-form editorial content such as program descriptions, policy text, announcements, or any body copy that needs formatting beyond a simple paragraph.
+
+## Props
+
+<ParamField path="content" type="PortableTextBlock[]">
+  Portable Text value array from Sanity. Rendered by `astro-portabletext` using the project's shared `portableTextComponents`, which includes custom renderers for marks, annotations, and embedded images.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token from the shared block base. Defaults to `white`.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Rich Text** block to a page's **Blocks** array.
+2. Use the **Content** Portable Text editor to write or paste body copy.
+3. Apply inline formatting: bold, italic, links, code, headings (H2–H4), and block quotes.
+4. Expand **Layout Options** to adjust spacing or max-width for narrow editorial columns.
+
+<Tip>
+  The Portable Text field type is `portableText` — a shared field definition in `studio/src/schemaTypes/objects/portable-text.ts` that configures available styles, marks, and decorators consistently across all blocks.
+</Tip>
+
+## Variants / Options
+
+This block has no `variant` field. The prose container (`SectionProse`) applies consistent Tailwind prose styles. Use the **Max Width** layout option to constrain long-form text to a narrower reading column.
+
+## Example
+
+```typescript
+{
+  _type: 'richText',
+  content: [
+    {
+      _type: 'block',
+      style: 'h2',
+      children: [{ _type: 'span', text: 'About the Capstone Program' }]
+    },
+    {
+      _type: 'block',
+      style: 'normal',
+      children: [
+        {
+          _type: 'span',
+          text: 'The YWCC Industry Capstone pairs senior students with real-world engineering challenges provided by our industry partners.'
+        }
+      ]
+    }
+  ]
+}
+```
+
+<Note>
+  Embedded images in Portable Text are handled by the shared `portableTextComponents` renderer, which applies the same `urlFor` optimisation pipeline used throughout the site.
+</Note>

@@ -1,0 +1,305 @@
+---
+title: "Media blocks"
+description: "12 fulldev/ui media variants across three sub-categories: logo clouds (logos-1–3), image grids (images-1–2), single-video sections (video-1–3), and video grid sections (videos-1–4)."
+---
+
+Media blocks display visual assets — partner logos, photography grids, and video embeds — as standalone page sections. They are grouped into four sub-categories by asset type.
+
+## Sub-categories at a glance
+
+| Sub-category | Sanity `_type` values | Count |
+|---|---|---|
+| Logo clouds | `logos-1`, `logos-2`, `logos-3` | 3 |
+| Image grids | `images-1`, `images-2` | 2 |
+| Single video | `video-1`, `video-2`, `video-3` | 3 |
+| Video grids | `videos-1`, `videos-2`, `videos-3`, `videos-4` | 4 |
+
+---
+
+## Logo cloud blocks
+
+Logo cloud blocks display a grid of partner or sponsor logos with optional labels and links. They are the template-block equivalent of the custom [Logo Cloud](/blocks/custom/logo-cloud) block.
+
+<CardGroup cols={2}>
+  <Card title="logos-1" icon="image">
+    Simple logo grid with optional text label beneath each logo and a small section heading above.
+  </Card>
+  <Card title="logos-2" icon="image">
+    Horizontally scrolling logo strip — suited for "as seen in" or sponsor strips.
+  </Card>
+  <Card title="logos-3" icon="image">
+    Two-row logo grid with more prominent sizing, suited for featured partner showcases.
+  </Card>
+</CardGroup>
+
+### Logo block props
+
+`logos-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/logos-1.astro
+interface Props {
+  class?: string
+  id?: string
+  logos?: {
+    src: string
+    alt: string
+    text?: string
+    href?: string
+  }[]
+}
+```
+
+<ParamField path="logos" type="object[]">
+  Array of logo objects. Each item requires:
+  - `src` — image URL or path
+  - `alt` — descriptive alt text (required for accessibility)
+  - `text` — optional visible label rendered below the logo image
+  - `href` — optional link wrapping the entire logo tile
+</ParamField>
+
+Section heading is passed through `<slot />`.
+
+### Storybook story
+
+```typescript
+// astro-app/src/components/blocks/logos-1.stories.ts
+export const Default = {
+  args: {
+    logos: [
+      { src: "https://placehold.co/120x40", alt: "Company A", text: "Company A", href: "#" },
+      { src: "https://placehold.co/120x40", alt: "Company B", text: "Company B", href: "#" },
+      { src: "https://placehold.co/120x40", alt: "Company C", text: "Company C", href: "#" },
+      { src: "https://placehold.co/120x40", alt: "Company D", text: "Company D", href: "#" }
+    ]
+  }
+}
+```
+
+### Installation
+
+```bash
+npx shadcn@latest add @fulldev/logos-1
+npx shadcn@latest add @fulldev/logos-2
+npx shadcn@latest add @fulldev/logos-3
+```
+
+---
+
+## Image grid blocks
+
+Image grid blocks display a collection of images as a hover-interactive mosaic.
+
+<CardGroup cols={2}>
+  <Card title="images-1" icon="gallery-horizontal">
+    Two-column image grid with hover overlay showing the tile title.
+  </Card>
+  <Card title="images-2" icon="gallery-horizontal">
+    Masonry-style image grid with varying row heights.
+  </Card>
+</CardGroup>
+
+### Image block props
+
+`images-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/images-1.astro
+interface Props {
+  class?: string
+  id?: string
+  links?: {
+    icon?: string
+    text?: string
+    href?: string
+    target?: string
+  }[]
+  items?: {
+    href?: string
+    title?: string
+    image?: {
+      src: string
+      alt: string
+    }
+  }[]
+}
+```
+
+<ParamField path="links" type="object[]">
+  Section-level CTA buttons rendered above the image grid. First item uses `default` variant, remaining use `outline`.
+</ParamField>
+
+<ParamField path="items" type="object[]">
+  Array of image tiles. Each item accepts:
+  - `image.src` — image URL or path
+  - `image.alt` — descriptive alt text
+  - `title` — text revealed on hover in an overlay
+  - `href` — makes the tile a link
+</ParamField>
+
+Hover behavior uses a CSS opacity transition — no JavaScript required. The overlay text (`TileTitle`) fades in at `group-hover/tile:opacity-100`.
+
+### Installation
+
+```bash
+npx shadcn@latest add @fulldev/images-1
+npx shadcn@latest add @fulldev/images-2
+```
+
+---
+
+## Single-video blocks
+
+Single-video blocks pair a large video player with prose content, a feature checklist, and social proof.
+
+<CardGroup cols={2}>
+  <Card title="video-1" icon="play">
+    Split layout: prose + checklist + avatar/rating social proof on the left, video player on the right.
+  </Card>
+  <Card title="video-2" icon="play">
+    Centered layout: headline above a full-width video player.
+  </Card>
+  <Card title="video-3" icon="play">
+    Split layout with the video on the left and prose on the right.
+  </Card>
+</CardGroup>
+
+### Single-video props
+
+`video-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/video-1.astro
+interface Props {
+  class?: string
+  id?: string
+  list?: string[]
+  links?: {
+    icon?: string
+    text?: string
+    href?: string
+    target?: string
+  }[]
+  video?: string
+  item?: {
+    avatars?: {
+      src: string
+      alt: string
+      title?: string
+    }[]
+    rating?: number
+    description?: string
+  }
+}
+```
+
+<ParamField path="video" type="string">
+  Video embed URL (e.g. a YouTube embed URL like `https://www.youtube.com/embed/...`) passed directly to the fulldev/ui `<Video>` primitive.
+</ParamField>
+
+<ParamField path="list" type="string[]">
+  Feature checklist strings rendered with check icons, identical to the `content-*` block pattern.
+</ParamField>
+
+<ParamField path="links" type="object[]">
+  CTA buttons below the prose. First item uses `default` variant, remaining use `outline`.
+</ParamField>
+
+<ParamField path="item" type="object">
+  Social proof composite: `avatars` array (each with `src`, `alt`, optional `title`), a numeric `rating`, and a `description` trust string. Rendered as a stacked avatar group with a star rating beneath.
+</ParamField>
+
+### Installation
+
+```bash
+npx shadcn@latest add @fulldev/video-1
+npx shadcn@latest add @fulldev/video-2
+npx shadcn@latest add @fulldev/video-3
+```
+
+---
+
+## Video grid blocks
+
+Video grid blocks display multiple video tiles in a responsive grid, similar to the image grid blocks but with embedded video players.
+
+<CardGroup cols={2}>
+  <Card title="videos-1" icon="film">
+    Three-column video tile grid with section heading and CTA buttons above.
+  </Card>
+  <Card title="videos-2" icon="film">
+    Two-column large video tile grid.
+  </Card>
+  <Card title="videos-3" icon="film">
+    Single-column stacked video tiles with titles.
+  </Card>
+  <Card title="videos-4" icon="film">
+    Four-column compact video grid.
+  </Card>
+</CardGroup>
+
+### Video grid props
+
+`videos-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/videos-1.astro
+interface Props {
+  class?: string
+  id?: string
+  links?: {
+    icon?: string
+    text?: string
+    href?: string
+    target?: string
+  }[]
+  items?: {
+    href?: string
+    title?: string
+    video?: string
+  }[]
+}
+```
+
+<ParamField path="links" type="object[]">
+  Section-level CTA buttons rendered above the video grid.
+</ParamField>
+
+<ParamField path="items" type="object[]">
+  Array of video tile objects. Each tile accepts:
+  - `video` — embed URL string passed to the `<Video>` primitive
+  - `title` — tile title rendered in `TileContent` below the player
+  - `href` — optional link wrapping the tile
+</ParamField>
+
+### Storybook story
+
+```typescript
+// astro-app/src/components/blocks/videos-1.stories.ts
+export const Default = {
+  args: {
+    links: [
+      { text: "Get Started", href: "#" },
+      { text: "Learn More", href: "#" }
+    ],
+    items: [
+      { title: "Introduction", video: "https://www.youtube.com/embed/dQw4w9WgXcQ", href: "#" },
+      { title: "Getting Started", video: "https://www.youtube.com/embed/dQw4w9WgXcQ", href: "#" },
+      { title: "Advanced Usage", video: "https://www.youtube.com/embed/dQw4w9WgXcQ", href: "#" }
+    ]
+  }
+}
+```
+
+### Installation
+
+```bash
+npx shadcn@latest add @fulldev/videos-1
+npx shadcn@latest add @fulldev/videos-2
+npx shadcn@latest add @fulldev/videos-3
+npx shadcn@latest add @fulldev/videos-4
+```
+
+<Warning>
+The `<Video>` primitive embeds the URL in an `<iframe>`. For YouTube or Vimeo, use the embed URL format (`/embed/VIDEO_ID`), not the watch URL. Using the watch URL will be blocked by the platform's iframe policy.
+</Warning>

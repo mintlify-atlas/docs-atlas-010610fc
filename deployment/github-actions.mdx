@@ -1,0 +1,230 @@
+---
+title: "GitHub Actions"
+description: "All six GitHub Actions workflows: CI, release, Storybook deploy, preview sync, and branch enforcement."
+---
+
+The repository uses six workflow files in `.github/workflows/` covering continuous integration, automated releases, static site deployment, and branch policy enforcement.
+
+## Workflow overview
+
+<CardGroup cols={2}>
+  <Card title="ci.yml" icon="vial">
+    Runs unit tests and Lighthouse CI on every PR targeting `preview`. Required to pass before merge.
+  </Card>
+  <Card title="release.yml" icon="tag">
+    Runs semantic-release on every push to `main`. Creates version tags, CHANGELOG entries, and GitHub Releases.
+  </Card>
+  <Card title="deploy-storybook.yml" icon="book">
+    Deploys Storybook to GitHub Pages on pushes to `main` that touch component files. Also manually triggerable.
+  </Card>
+  <Card title="sync-preview.yml" icon="arrows-rotate">
+    Merges `main` back into `preview` after every successful release. Sends a Discord notification on success or failure.
+  </Card>
+  <Card title="enforce-preview-branch.yml" icon="shield">
+    Blocks PRs into `main` from any branch other than `preview`.
+  </Card>
+  <Card title="enforce-preview-source.yml" icon="shield">
+    Blocks manual PRs from `main` into `preview` — that direction is handled automatically by `sync-preview.yml`.
+  </Card>
+</CardGroup>
+
+---
+
+## ci.yml — Continuous Integration
+
+**Trigger:** Pull requests targeting the `preview` branch.
+
+```yaml
+on:
+  pull_request:
+    branches: [preview]
+```
+
+### Jobs
+
+**`unit-tests`** — Runs the full Vitest suite:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: 22
+    cache: npm
+- run: npm ci
+- run: npm run test:unit
+```
+
+**`lighthouse`** — Builds the Astro site and runs Lighthouse CI:
+
+```yaml
+- name: Build Astro site
+  run: npm run build --workspace=astro-app
+  env:
+    PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+    PUBLIC_SANITY_STUDIO_DATASET: ${{ vars.PUBLIC_SANITY_STUDIO_DATASET }}
+    PUBLIC_SANITY_DATASET: ${{ vars.PUBLIC_SANITY_DATASET || 'production' }}
+    PUBLIC_SITE_ID: ${{ vars.PUBLIC_SITE_ID || 'capstone' }}
+    PUBLIC_SITE_THEME: ${{ vars.PUBLIC_SITE_THEME || 'red' }}
+    PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+    PUBLIC_SANITY_STUDIO_URL: ${{ vars.PUBLIC_SANITY_STUDIO_URL }}
+    PUBLIC_GTM_ID: ${{ vars.PUBLIC_GTM_ID }}
+    PUBLIC_SANITY_VISUAL_EDITING_ENABLED: ${{ vars.PUBLIC_SANITY_VISUAL_EDITING_ENABLED }}
+- name: Run Lighthouse CI
+  run: npx lhci autorun
+  continue-on-error: true
+  env:
+    LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+```
+
+<Note>
+  Lighthouse CI runs with `continue-on-error: true` so that a Lighthouse regression does not block an otherwise-passing PR. The results still appear as a status check in the PR. Install the LHCI GitHub App and set `LHCI_GITHUB_APP_TOKEN` to get inline performance annotations on the PR.
+</Note>
+
+### Required GitHub variables
+
+The Lighthouse build job reads these from the repository's **Variables** (not secrets):
+
+| Variable | Example |
+|---|---|
+| `PUBLIC_SANITY_STUDIO_PROJECT_ID` | `49nk9b0w` |
+| `PUBLIC_SANITY_STUDIO_DATASET` | `production` |
+| `PUBLIC_SITE_URL` | `https://ywcc-capstone.pages.dev` |
+| `PUBLIC_GTM_ID` | GTM container ID |
+
+---
+
+## release.yml — Semantic Release
+
+**Trigger:** Pushes to `main`.
+
+```yaml
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+```
+
+```yaml
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install semantic-release plugins
+        run: npm install --no-save semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github conventional-changelog-conventionalcommits
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: npx semantic-release
+```
+
+`fetch-depth: 0` is required so semantic-release can read the full git history to determine the version bump from commit messages.
+
+`RELEASE_TOKEN` must be a Personal Access Token (not the default `GITHUB_TOKEN`) because semantic-release pushes a commit back to `main` (the changelog commit), and push-to-protected-branch requires a PAT.
+
+---
+
+## deploy-storybook.yml — Storybook Deploy
+
+**Trigger:** Pushes to `main` touching `astro-app/src/**`, `astro-app/.storybook/**`, or `astro-app/package.json`. Also manually triggerable via `workflow_dispatch`.
+
+See [Deploying Sanity Studio](/deployment/sanity-studio) for the full workflow source and configuration details.
+
+---
+
+## sync-preview.yml — Preview Sync
+
+**Trigger:** Runs automatically after every successful `Release` workflow completes.
+
+```yaml
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+```
+
+```yaml
+- name: Merge main into preview
+  id: sync
+  run: |
+    git checkout preview
+    git merge origin/main --no-edit
+    git push origin preview
+    echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+```
+
+After a successful merge, a Discord embed is posted:
+
+> **Preview branch synced**
+> **preview** is now in sync with **main** at `abc1234`.
+> Safe to pull and branch from preview.
+
+If the merge fails (e.g., due to a conflict), a failure embed is posted with a link to the Actions run.
+
+<Warning>
+  The sync workflow uses `secrets.RELEASE_TOKEN` (a PAT) to push to `preview`. Make sure this token has `Contents: write` scope and is not expired.
+</Warning>
+
+---
+
+## enforce-preview-branch.yml — Main Branch Guard
+
+**Trigger:** Pull requests targeting `main`.
+
+```yaml
+jobs:
+  check-source-branch:
+    steps:
+      - name: Verify source branch is preview
+        if: github.head_ref != 'preview'
+        run: |
+          echo "::error::Only the 'preview' branch can merge into main. This PR is from '${{ github.head_ref }}'."
+          exit 1
+```
+
+This workflow fails (and blocks merge) if the PR source branch is anything other than `preview`. It enforces the [git workflow](/deployment/git-workflow) rule that `main` only accepts merges from `preview`.
+
+---
+
+## enforce-preview-source.yml — Preview Branch Guard
+
+**Trigger:** Pull requests targeting `preview`.
+
+```yaml
+jobs:
+  check-source-branch:
+    steps:
+      - name: Block PRs from main to preview
+        if: github.head_ref == 'main'
+        run: |
+          echo "::error::PRs from 'main' to 'preview' are not allowed. The sync-preview workflow handles this automatically."
+          exit 1
+```
+
+Blocks manual PRs from `main` → `preview`. The `sync-preview.yml` workflow handles this direction automatically after every release, so manual PRs from `main` are unnecessary and potentially disruptive.
+
+---
+
+## Secrets and variables reference
+
+| Name | Type | Used by |
+|---|---|---|
+| `RELEASE_TOKEN` | Secret (PAT) | `release.yml`, `sync-preview.yml` |
+| `LHCI_GITHUB_APP_TOKEN` | Secret | `ci.yml` (optional) |
+| `DISCORD_WEBHOOK_URL` | Secret | `sync-preview.yml` |
+| `CLOUDFLARE_API_TOKEN` | Secret | Manual deploy scripts |
+| `CLOUDFLARE_ACCOUNT_ID` | Secret | Manual deploy scripts |
+| `SANITY_API_READ_TOKEN` | Secret | `ci.yml` Lighthouse build |
+| `PUBLIC_SANITY_STUDIO_PROJECT_ID` | Variable | `ci.yml` Lighthouse build |
+| `PUBLIC_SANITY_STUDIO_DATASET` | Variable | `ci.yml` Lighthouse build |
+| `PUBLIC_SITE_URL` | Variable | `ci.yml` Lighthouse build |
+| `PUBLIC_GTM_ID` | Variable | `ci.yml` Lighthouse build |

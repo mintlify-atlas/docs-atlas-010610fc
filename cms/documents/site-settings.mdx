@@ -1,0 +1,110 @@
+---
+title: "Site settings document"
+description: "Schema fields for the siteSettings singleton document, which controls global branding, navigation, footer, and social links."
+---
+
+The `siteSettings` document is a **singleton** — there is exactly one per site. It controls global branding (logo, site name), header navigation, footer content, social links, and contact information.
+
+## Singleton pattern
+
+The singleton is enforced in two ways:
+
+1. **Document actions** — `sanity.config.ts` restricts allowed actions to `publish`, `discardChanges`, and `restore`. Editors cannot create or delete the document.
+2. **New document options** — `siteSettings` is removed from the "New document" menu so a second instance cannot be created.
+
+On the `production` dataset, the document ID is `siteSettings`. On the `rwc` dataset, each site has its own singleton: `siteSettings-rwc-us` and `siteSettings-rwc-intl`. `getSiteSettingsId()` in `sanity.ts` returns the correct ID for the current build.
+
+## Fields
+
+### Branding group
+
+<ParamField path="siteName" type="string" required>
+  Full site name (e.g. `YWCC Industry Capstone`). Used in the `<title>` tag fallback and footer.
+</ParamField>
+
+<ParamField path="site" type="string">
+  Multi-site discriminator. Hidden on the `production` dataset.
+</ParamField>
+
+<ParamField path="siteDescription" type="text">
+  Default meta description for pages that do not have their own SEO description set.
+</ParamField>
+
+<ParamField path="logo" type="image">
+  Primary site logo. Used in the header. Supports hotspot. Must include `alt` text.
+</ParamField>
+
+<ParamField path="logoLight" type="image">
+  Light-on-dark variant of the logo. Used in the footer. Must include `alt` text.
+</ParamField>
+
+### Navigation group
+
+<ParamField path="ctaButton" type="object">
+  Primary call-to-action button shown in the header. Inline object with `text` and `url` from the shared `buttonFields` definition.
+</ParamField>
+
+<ParamField path="navigationItems" type="array of objects">
+  Ordered list of header navigation links. Each item uses `linkFields` (`label`, `href`) and supports a `children` array for dropdown sub-items.
+
+  <Note>
+    Sub-items (`children`) are stored in the schema but are not yet rendered in the header. Rendering dropdown navigation is planned for a future story.
+  </Note>
+</ParamField>
+
+### Footer group
+
+<ParamField path="footerContent" type="object">
+  Footer body content with two sub-fields:
+  - `text` (text) — body copy shown in the footer
+  - `copyrightText` (string) — copyright line in the footer bottom bar
+</ParamField>
+
+<ParamField path="footerLinks" type="array of objects">
+  Links shown in the footer bottom bar (e.g. Privacy Policy, Terms of Use). Each item uses `linkFields`.
+</ParamField>
+
+<ParamField path="resourceLinks" type="array of objects">
+  Links shown in the footer **Resources** column. Each item uses `linkFields`.
+</ParamField>
+
+<ParamField path="programLinks" type="array of objects">
+  Links shown in the footer **Programs** column. Each item uses `linkFields`.
+</ParamField>
+
+### Social & Contact group
+
+<ParamField path="socialLinks" type="array of objects">
+  Social media links. Each item has:
+  - `platform` (string, required) — one of `github`, `linkedin`, `twitter`, `instagram`, `youtube`
+  - `url` (url, required) — full URL to the profile
+</ParamField>
+
+<ParamField path="contactInfo" type="object">
+  Contact information displayed in the footer. Sub-fields:
+  - `address` (string)
+  - `email` (string, validated as email with a warning)
+  - `phone` (string)
+</ParamField>
+
+<ParamField path="currentSemester" type="string">
+  Current academic semester label (e.g. `Fall 2026`). Displayed in various blocks and used as a default semester filter. Format: `Season YYYY`.
+</ParamField>
+
+## Fetching site settings
+
+`getSiteSettings()` in `sanity.ts` fetches the singleton and caches the result for the entire build:
+
+```typescript
+export async function getSiteSettings() {
+  if (!visualEditingEnabled && _siteSettingsCache) return _siteSettingsCache
+  const { result } = await loadQuery({
+    query: SITE_SETTINGS_QUERY,
+    params: { siteSettingsId: getSiteSettingsId() },
+  })
+  _siteSettingsCache = result
+  return result
+}
+```
+
+It is called from `Layout.astro`, `Header.astro`, and `Footer.astro`. Because of the module-level cache, only one API call is made per build regardless of how many pages include those components.

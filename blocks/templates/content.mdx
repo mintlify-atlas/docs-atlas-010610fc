@@ -1,0 +1,138 @@
+---
+title: "Content blocks"
+description: "6 fulldev/ui content variants (content-1 through content-6) for text and image section layouts with optional feature checklists."
+---
+
+Content blocks pair rich text prose with a supporting image, making them the primary vehicle for body copy sections. Each variant controls how the text and image are positioned relative to each other — side-by-side, stacked, reversed, or with additional visual elements like checklist lists.
+
+## Variants
+
+<CardGroup cols={2}>
+  <Card title="content-1" icon="file-text">
+    Left prose + right image split, with a checklist and two CTA buttons beneath the text.
+  </Card>
+  <Card title="content-2" icon="file-text">
+    Right prose + left image split (image-first layout).
+  </Card>
+  <Card title="content-3" icon="file-text">
+    Centered prose above a full-width image, no checklist.
+  </Card>
+  <Card title="content-4" icon="file-text">
+    Left prose + right image with a stats or numbers row beneath the text.
+  </Card>
+  <Card title="content-5" icon="file-text">
+    Split layout with tabbed content panel replacing the image.
+  </Card>
+  <Card title="content-6" icon="file-text">
+    Split layout with an embedded video in the media area.
+  </Card>
+</CardGroup>
+
+## Sanity `_type` names
+
+```
+content-1.astro  →  _type: "content-1"
+content-2.astro  →  _type: "content-2"
+...through content-6
+```
+
+## Props interface
+
+`content-1.astro` is the canonical reference:
+
+```typescript
+// astro-app/src/components/blocks/content-1.astro
+interface Props {
+  class?: string
+  id?: string
+  list?: string[]
+  links?: {
+    icon?: string
+    text?: string
+    href?: string
+    target?: string
+  }[]
+  image?: {
+    src: string
+    alt: string
+  }
+}
+```
+
+<ParamField path="class" type="string">
+  Additional CSS classes forwarded to the root `<Section>` element.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` attribute for in-page anchor links.
+</ParamField>
+
+<ParamField path="list" type="string[]">
+  Array of checklist item strings. Each string is rendered as a `<ListItem>` prefixed with a check icon. Pass an empty array or omit to suppress the list.
+</ParamField>
+
+<ParamField path="links" type="object[]">
+  CTA buttons rendered below the prose and checklist. The first item uses the `default` button variant; subsequent items use `outline`. Each item accepts `icon`, `text`, `href`, and `target`.
+</ParamField>
+
+<ParamField path="image" type="object" required>
+  Image displayed in the `SectionMedia` column. Requires `src` (URL or path) and `alt` (descriptive text). Rendered via the fulldev/ui `<Image>` primitive with responsive `sizes`.
+</ParamField>
+
+Headline and body copy are passed through the default `<slot />` inside `<SectionProse>`.
+
+## Storybook story
+
+```typescript
+// astro-app/src/components/blocks/content-1.stories.ts
+export const Default = {
+  args: {
+    links: [
+      { text: "Get Started", href: "#" },
+      { text: "Learn More", href: "#" }
+    ],
+    image: {
+      src: "https://placehold.co/800x400",
+      alt: "Placeholder image"
+    },
+    list: [
+      "First benefit of this product",
+      "Second benefit with details",
+      "Third key advantage"
+    ]
+  }
+}
+```
+
+## Component internals
+
+```astro
+<Section>
+  <SectionContent>
+    <SectionProse><slot /></SectionProse>
+    <List>
+      {list?.map(item => (
+        <ListItem><Icon name="check" />{item}</ListItem>
+      ))}
+    </List>
+    <SectionActions>{/* links[] → Button variants */}</SectionActions>
+  </SectionContent>
+  <SectionMedia>
+    <Image sizes="(min-width: 1536px) 1536px, 100vw" {...image} />
+  </SectionMedia>
+</Section>
+```
+
+The `Section` primitive handles the two-column responsive grid. The image column collapses below the text on small viewports automatically.
+
+## Installation
+
+```bash
+npx shadcn@latest add @fulldev/content-1
+```
+
+Repeat for each variant (`content-2` through `content-6`) as needed.
+
+<Tip>
+For pages that need alternating left/right image sections, use `content-1` and `content-2` in sequence — they produce the same split layout with the image side flipped.
+</Tip>

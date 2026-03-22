@@ -1,0 +1,88 @@
+---
+title: "Text with Image"
+description: "Split section pairing Portable Text body copy with a positioned image, switchable left or right."
+---
+
+The `TextWithImage` block renders a two-column split: a Portable Text content area on one side and an image on the other. The `imagePosition` field controls which side the image appears on. LQIP (low-quality image placeholders) are supported for smooth lazy-loading.
+
+## Props
+
+<ParamField path="heading" type="string">
+  Optional heading above the body copy, rendered as `<h2>` at `3xl`–`4xl` with tight tracking.
+</ParamField>
+
+<ParamField path="content" type="PortableTextBlock[]">
+  Portable Text body copy rendered with the project's shared `portableTextComponents`. Styled as `prose` with `text-muted-foreground`.
+</ParamField>
+
+<ParamField path="image" type="SanityImageObject">
+  Sanity image with hotspot enabled. Cropped to `800×600` (`4:3` aspect ratio). The `alt` field on the image object is required for accessibility.
+</ParamField>
+
+<ParamField path="imagePosition" type="'left' | 'right'">
+  Controls which side the image occupies. Defaults to `right`. When set to `left`, the image uses `@lg:order-first` to prepend it in the column order.
+</ParamField>
+
+<ParamField path="backgroundVariant" type="'white' | 'light' | 'dark' | 'primary'">
+  Background colour token. Defaults to `white`.
+</ParamField>
+
+<ParamField path="spacing" type="'none' | 'small' | 'default' | 'large'">
+  Vertical padding override. Defaults to `default`.
+</ParamField>
+
+<ParamField path="maxWidth" type="'narrow' | 'default' | 'full'">
+  Content container max-width. Defaults to `default`.
+</ParamField>
+
+<ParamField path="class" type="string">
+  Additional CSS classes.
+</ParamField>
+
+<ParamField path="id" type="string">
+  HTML `id` for anchor targeting.
+</ParamField>
+
+## Usage in Sanity Studio
+
+1. Add a **Text with Image** block to a page.
+2. Set an optional **Heading**.
+3. Write the **Content** body copy using the Portable Text editor.
+4. Upload an **Image** and fill in the required **Alternative Text** field.
+5. Expand **Layout Options** and set **Image Position** to `left` or `right` (default `right`).
+
+<Tip>
+  The image uses hotspot: upload images with the subject off-centre and set the hotspot in Studio so the `4:3` crop always frames the right focal point.
+</Tip>
+
+## Variants / Options
+
+No `variant` field. The two layout options are:
+
+| `imagePosition` | Behaviour |
+|---|---|
+| `right` (default) | Text left, image right |
+| `left` | Image left (via `@lg:order-first`), text right |
+
+## Example
+
+```typescript
+{
+  _type: 'textWithImage',
+  heading: 'How the Capstone Works',
+  content: [
+    {
+      _type: 'block',
+      style: 'normal',
+      children: [
+        { _type: 'span', text: 'Each team of four to five students is matched with an industry partner at the start of the semester. Partners provide a project brief, and teams deliver working software by the end of term.' }
+      ]
+    }
+  ],
+  image: {
+    asset: { _ref: 'image-abc123' },
+    alt: 'Students presenting their capstone project'
+  },
+  imagePosition: 'right'
+}
+```

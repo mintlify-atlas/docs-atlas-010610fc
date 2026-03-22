@@ -1,0 +1,123 @@
+---
+title: "GROQ projections"
+description: "How IMAGE_PROJECTION and PORTABLE_TEXT_PROJECTION reshape Sanity data into component-ready props."
+---
+
+Projections in GROQ are the `{ field1, field2, ... }` clauses that select and transform fields from a document. This project defines two shared projection constants that are interpolated into every query that needs image or rich text data.
+
+## `IMAGE_PROJECTION`
+
+Defined at the top of `astro-app/src/lib/sanity.ts`:
+
+```typescript
+const IMAGE_PROJECTION = `asset->{ _id, url, metadata { lqip, dimensions } }`
+```
+
+This projection follows the `asset` reference and pulls three sub-fields:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `asset._id` | string | Sanity asset document ID, used by `@sanity/image-url` to construct the image URL |
+| `asset.url` | string | Direct CDN URL for the full-resolution image |
+| `asset.metadata.lqip` | string | Low-quality image placeholder (base64 data URI) for blur-up loading |
+| `asset.metadata.dimensions` | object | `{ width, height, aspectRatio }` — enables native lazy loading with correct `width`/`height` attributes |
+
+### How it is used
+
+Anywhere an image field appears in a query, `IMAGE_PROJECTION` is interpolated directly:
+
+```groq
+logo{ ${IMAGE_PROJECTION}, alt, hotspot, crop }
+```
+
+This resolves to:
+
+```groq
+logo{
+  asset->{ _id, url, metadata { lqip, dimensions } },
+  alt,
+  hotspot,
+  crop
+}
+```
+
+The `hotspot` and `crop` fields are kept alongside the projection so `@sanity/image-url`'s `urlFor()` helper can apply editor-defined focal point cropping.
+
+## `PORTABLE_TEXT_PROJECTION`
+
+Defined in `astro-app/src/lib/sanity.ts`:
+
+```typescript
+const PORTABLE_TEXT_PROJECTION = `{
+  ...,
+  _type == "image" => { ${IMAGE_PROJECTION}, alt, caption },
+  markDefs[]{
+    ...,
+    _type == "internalLink" => { ..., reference->{ _type, "slug": slug.current } }
+  }
+}`
+```
+
+This projection is applied to every `portableText` array in the queries. It uses GROQ's conditional projection syntax (`_type == "image" => { ... }`) to:
+
+1. **Spread all block fields** (`...`) — preserves `_type`, `_key`, `style`, `children`, and all other standard Portable Text fields.
+2. **Resolve inline images** — when a block is of type `image`, apply `IMAGE_PROJECTION` plus `alt` and `caption`.
+3. **Resolve internal links** — within `markDefs`, when a mark is of type `internalLink`, follow the `reference` pointer and return `_type` and `slug.current` so the Portable Text renderer can build the correct href without a second query.
+
+### Where it is applied
+
+`PORTABLE_TEXT_PROJECTION` is interpolated using array item syntax:
+
+```groq
+content[]${PORTABLE_TEXT_PROJECTION}
+```
+
+This applies the projection to each element in the `content` array. It appears in:
+
+- `PAGE_BY_SLUG_QUERY` — `textWithImage.content[]`, `richText.content[]`, `faqSection.items[].answer[]`
+- `PROJECT_BY_SLUG_QUERY` — `content[]`
+
+## The adapter pattern
+
+Projections act as an **adapter layer** between Sanity's document structure and component props. The flow is:
+
+```
+Sanity document
+  └→ GROQ projection (IMAGE_PROJECTION / PORTABLE_TEXT_PROJECTION)
+       └→ Typed query result (sanity.types.ts)
+            └→ Astro component props
+```
+
+Because projections are interpolated as constants, any change to how images or rich text are fetched only needs to be made in one place. TypeGen then regenerates the types, and TypeScript catches any component prop mismatches at compile time.
+
+<Tip>
+  When adding a new block type that contains images, use `IMAGE_PROJECTION` in the block's branch of `PAGE_BY_SLUG_QUERY`. Do not write the asset dereference inline — keep it consistent and DRY.
+</Tip>
+
+## Type-conditional projection syntax
+
+The `PAGE_BY_SLUG_QUERY` uses GROQ's type-conditional projection to handle the heterogeneous `blocks[]` array. Each block type gets its own branch:
+
+```groq
+blocks[]{
+  _type,
+  _key,
+  backgroundVariant,
+  spacing,
+  maxWidth,
+  variant,
+  _type == "heroBanner" => {
+    heading,
+    subheading,
+    backgroundImages[]{ _key, asset->{ _id, url, metadata { lqip, dimensions } }, alt },
+    ctaButtons[]{ _key, text, url, variant },
+    alignment
+  },
+  _type == "richText" => {
+    content[]{ ..., markDefs[]{ ..., _type == "internalLink" => { ..., reference->{ _type, "slug": slug.current } } } }
+  },
+  // … one branch per block type
+}
+```
+
+Fields that are common to all blocks (`_type`, `_key`, `backgroundVariant`, `spacing`, `maxWidth`, `variant`) are projected unconditionally. Block-specific fields are projected only when `_type` matches, keeping the result clean and the generated TypeScript union types precise.

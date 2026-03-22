@@ -1,122 +1,159 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "YWCC Industry Capstone",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#F03E2F",
+    "light": "#FF6B5B",
+    "dark": "#B52B1F"
   },
   "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/gsinghjay/astro-shadcn-sanity"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/gsinghjay/astro-shadcn-sanity"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Getting Started",
         "groups": [
           {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
+            "group": "Overview",
+            "pages": ["introduction", "quickstart"]
           },
           {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
+            "group": "Setup",
+            "pages": ["setup/prerequisites", "setup/environment", "setup/local-development"]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Architecture",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "System Design",
+            "pages": ["architecture/overview", "architecture/content-model", "architecture/rendering-strategy"]
+          },
+          {
+            "group": "Monorepo",
+            "pages": ["architecture/project-structure", "architecture/workspace-packages"]
+          }
+        ]
+      },
+      {
+        "tab": "Block Library",
+        "groups": [
+          {
+            "group": "Concepts",
+            "pages": ["blocks/overview", "blocks/block-architecture", "blocks/block-registry"]
+          },
+          {
+            "group": "Custom Blocks",
             "pages": [
-              "api-reference/introduction"
+              "blocks/custom/hero-banner",
+              "blocks/custom/feature-grid",
+              "blocks/custom/sponsor-cards",
+              "blocks/custom/rich-text",
+              "blocks/custom/cta-banner",
+              "blocks/custom/faq-section",
+              "blocks/custom/contact-form",
+              "blocks/custom/stats-row",
+              "blocks/custom/text-with-image",
+              "blocks/custom/logo-cloud",
+              "blocks/custom/sponsor-steps"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Template Blocks",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "blocks/templates/overview",
+              "blocks/templates/heroes",
+              "blocks/templates/features",
+              "blocks/templates/content",
+              "blocks/templates/cta",
+              "blocks/templates/media"
             ]
+          },
+          {
+            "group": "Adding Blocks",
+            "pages": ["blocks/adding/custom-block", "blocks/adding/template-block"]
+          }
+        ]
+      },
+      {
+        "tab": "Content Management",
+        "groups": [
+          {
+            "group": "Sanity Studio",
+            "pages": ["cms/overview", "cms/schema-types", "cms/visual-editing"]
+          },
+          {
+            "group": "Document Types",
+            "pages": [
+              "cms/documents/page",
+              "cms/documents/sponsor",
+              "cms/documents/project",
+              "cms/documents/team",
+              "cms/documents/event",
+              "cms/documents/site-settings"
+            ]
+          },
+          {
+            "group": "GROQ Queries",
+            "pages": ["cms/groq/overview", "cms/groq/projections"]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "groups": [
+          {
+            "group": "Infrastructure",
+            "pages": [
+              "deployment/cloudflare-pages",
+              "deployment/cloudflare-workers",
+              "deployment/sanity-studio"
+            ]
+          },
+          {
+            "group": "CI/CD",
+            "pages": [
+              "deployment/github-actions",
+              "deployment/semantic-release",
+              "deployment/git-workflow"
+            ]
+          },
+          {
+            "group": "Performance",
+            "pages": ["deployment/lighthouse-ci", "deployment/performance-targets"]
+          }
+        ]
+      },
+      {
+        "tab": "Testing",
+        "groups": [
+          {
+            "group": "Test Layers",
+            "pages": [
+              "testing/overview",
+              "testing/unit-tests",
+              "testing/e2e-tests",
+              "testing/accessibility"
+            ]
+          },
+          {
+            "group": "Storybook",
+            "pages": ["testing/storybook"]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }
